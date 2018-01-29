@@ -33,7 +33,7 @@ func fail(operation string, err error) {
 }
 
 type discoveryParameters struct {
-	Url           string
+	URL           string
 	StarsPath     string
 	LanguagesPath string
 	ReposPath     string
@@ -56,11 +56,11 @@ func reduceWatchers(stream io.Reader) map[int]int {
 	for scanner.Scan() {
 		line := scanner.Text()
 		commaPos := strings.Index(line, ",")
-		projectId, err := strconv.Atoi(line[:commaPos])
+		projectID, err := strconv.Atoi(line[:commaPos])
 		if err != nil {
 			fail(fmt.Sprintf("parsing watchers project ID \"%s\"", line[:commaPos]), err)
 		}
-		stars[projectId]++
+		stars[projectID]++
 	}
 	return stars
 }
@@ -125,17 +125,17 @@ func writeProjects(stream io.Reader, path string) {
 		if commaPos < 0 {
 			fail("parsing projects "+line, fmt.Errorf("comma not found"))
 		}
-		projectId, err := strconv.Atoi(line[:commaPos])
+		projectID, err := strconv.Atoi(line[:commaPos])
 		if err != nil {
 			fail(fmt.Sprintf("parsing projects project ID \"%s\"", line[:commaPos]), err)
 		}
-		if projectId < 0 {
+		if projectID < 0 {
 			continue
 		}
 		line = line[commaPos+1+30:] // +"https://api.github.com/repos/
 		commaPos = strings.Index(line, "\"")
 		projectName := line[:commaPos]
-		fmt.Fprintf(gzf, "%d %s\n", projectId, projectName)
+		fmt.Fprintf(gzf, "%d %s\n", projectID, projectName)
 	}
 }
 
@@ -152,7 +152,7 @@ func writeLanguages(stream io.Reader, path string) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.SplitN(line, ",", 3)
-		projectId, err := strconv.Atoi(fields[0])
+		projectID, err := strconv.Atoi(fields[0])
 		if err != nil {
 			fail("parsing project_languages.csv: "+line, err)
 		}
@@ -162,7 +162,7 @@ func writeLanguages(stream io.Reader, path string) {
 			projects = map[int]bool{}
 			langs[lang] = projects
 		}
-		projects[projectId] = true
+		projects[projectID] = true
 	}
 	langList := make([]string, len(langs))
 	{
@@ -234,22 +234,22 @@ func discoverRepos(params discoveryParameters) {
 	spin.Start()
 	defer spin.Stop()
 	var inputFile io.Reader
-	if params.Url == "-" {
+	if params.URL == "-" {
 		inputFile = os.Stdin
 	} else {
-		if params.Url == "" {
-			envUrl := os.Getenv("GHTORRENT_MYSQL")
-			if envUrl == "" {
-				envUrl = defaultGhtorrentMySQL
+		if params.URL == "" {
+			envURL := os.Getenv("GHTORRENT_MYSQL")
+			if envURL == "" {
+				envURL = defaultGhtorrentMySQL
 			}
-			spin.Suffix = " " + envUrl
-			params.Url = findMostRecentMySQLDump(envUrl)
-			fmt.Printf("\r>> %s\n", params.Url)
+			spin.Suffix = " " + envURL
+			params.URL = findMostRecentMySQLDump(envURL)
+			fmt.Printf("\r>> %s\n", params.URL)
 			spin.Suffix = " connecting..."
 		}
-		response, err := http.Get(params.Url)
+		response, err := http.Get(params.URL)
 		if err != nil {
-			fail("starting the download of "+params.Url, err)
+			fail("starting the download of "+params.URL, err)
 		}
 		inputFile = response.Body
 		defer response.Body.Close()
@@ -321,7 +321,7 @@ type selectionParameters struct {
 	FilteredLanguages []string
 	MinStars          int
 	TopN              int
-	UrlTemplate       string
+	URLTemplate       string
 }
 
 func filterStars(path string, minStars int, topN int, selectedRepos map[int]bool) map[int]bool {
@@ -430,37 +430,37 @@ func selectRepos(parameters selectionParameters) {
 	defer gzf.Close()
 	scanner := bufio.NewScanner(gzf)
 	for scanner.Scan() {
-		var repoId int
+		var repoID int
 		var repoName string
 		line := scanner.Text()
-		n, err := fmt.Sscan(line, &repoId, &repoName)
+		n, err := fmt.Sscan(line, &repoID, &repoName)
 		if err != nil || n != 2 {
 			if err == nil {
 				err = errors.New("failed to parse " + line)
 			}
 			fail("parsing repositories file "+parameters.ReposFile, err)
 		}
-		if selectedRepos[repoId] {
+		if selectedRepos[repoID] {
 			bar.Increment()
-			fmt.Fprintf(os.Stdout, parameters.UrlTemplate+"\n", repoName)
+			fmt.Fprintf(os.Stdout, parameters.URLTemplate+"\n", repoName)
 		}
 	}
 }
 
-func downloadIndex(baseUrl string, outputPath string) {
+func downloadIndex(baseURL string, outputPath string) {
 	spin := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 	spin.Writer = os.Stderr
 	spin.Start()
 	defer spin.Stop()
-	indexUrl, err := url.Parse(baseUrl)
+	indexURL, err := url.Parse(baseURL)
 	if err != nil {
-		fail("parsing "+baseUrl, err)
+		fail("parsing "+baseURL, err)
 	}
-	latestUrl, _ := url.Parse("latest.csv.gz")
-	effectiveUrl := indexUrl.ResolveReference(latestUrl).String()
-	response, err := http.Get(effectiveUrl)
+	latestURL, _ := url.Parse("latest.csv.gz")
+	effectiveURL := indexURL.ResolveReference(latestURL).String()
+	response, err := http.Get(effectiveURL)
 	if err != nil {
-		fail("connecting to "+effectiveUrl, err)
+		fail("connecting to "+effectiveURL, err)
 	}
 	defer response.Body.Close()
 	var totalRead int64
@@ -488,7 +488,7 @@ func downloadIndex(baseUrl string, outputPath string) {
 	bytesWritten, err := io.Copy(outputFile, gzf)
 	spin.Stop()
 	if err != nil {
-		fail("failed to download "+effectiveUrl, err)
+		fail("failed to download "+effectiveURL, err)
 	}
 	fmt.Fprintf(os.Stderr, "Read      %s\nWrote      %s\n",
 		humanize.Bytes(uint64(totalRead)), humanize.Bytes(uint64(bytesWritten)))
@@ -584,7 +584,7 @@ func (backend *fileSystemDownloadBackend) Download(state interface{}, response *
 		fail("failed to download "+job.String(), err)
 	}
 	if written != length {
-		fail("incomplete download: "+job.String(), errors.New(fmt.Sprintf("%d != %d", written, length)))
+		fail("incomplete download: "+job.String(), fmt.Errorf("%d != %d", written, length))
 	}
 }
 
@@ -630,14 +630,14 @@ func (backend *hdfsDownloadBackend) Download(state interface{}, response *http.R
 		fail("failed to download "+job.String(), err)
 	}
 	if written != length {
-		fail("incomplete download: "+job.String(), errors.New(fmt.Sprintf("%d != %d", written, length)))
+		fail("incomplete download: "+job.String(), fmt.Errorf("%d != %d", written, length))
 	}
 }
 
-func downloadDataset(baseUrl string, outPath string, workers int, hdfs string) {
-	base, err := url.Parse(baseUrl)
+func downloadDataset(baseURL string, outPath string, workers int, hdfs string) {
+	base, err := url.Parse(baseURL)
 	if err != nil {
-		fail("parsing "+baseUrl, err)
+		fail("parsing "+baseURL, err)
 	}
 	bar := pb.New(0)
 	bar.ShowFinalTime = true
@@ -667,13 +667,13 @@ func downloadDataset(baseUrl string, outPath string, workers int, hdfs string) {
 	})
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		fileUrl, err := url.Parse(scanner.Text())
+		fileURL, err := url.Parse(scanner.Text())
 		if err != nil {
 			fail("failed to parse file names: "+scanner.Text(), err)
 		}
 		totalUrls++
 		bar.Total = int64(totalUrls)
-		urls <- base.ResolveReference(fileUrl)
+		urls <- base.ResolveReference(fileURL)
 	}
 	downloader.Wait()
 }
@@ -701,7 +701,7 @@ var discoverCmd = &cobra.Command{
 		langs, _ := flags.GetString("languages")
 		repos, _ := flags.GetString("repos")
 		parameters := discoveryParameters{
-			Url:           url,
+			URL:           url,
 			StarsPath:     stars,
 			LanguagesPath: langs,
 			ReposPath:     repos,
@@ -732,7 +732,7 @@ var selectCmd = &cobra.Command{
 			MinStars:          minStars,
 			FilteredLanguages: strings.Split(filteredLangs, ","),
 			TopN:              topN,
-			UrlTemplate:       urlTemplate,
+			URLTemplate:       urlTemplate,
 		})
 	},
 }
@@ -745,8 +745,8 @@ var getIndexCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		flags := cmd.Flags()
 		outPath, _ := flags.GetString("output")
-		baseUrl, _ := flags.GetString("base")
-		downloadIndex(baseUrl, outPath)
+		baseURL, _ := flags.GetString("base")
+		downloadIndex(baseURL, outPath)
 	},
 }
 
@@ -758,10 +758,10 @@ var getDatasetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		flags := cmd.Flags()
 		outPath, _ := flags.GetString("output")
-		baseUrl, _ := flags.GetString("base")
+		baseURL, _ := flags.GetString("base")
 		workers, _ := flags.GetInt("workers")
 		hdfs, _ := flags.GetString("hdfs")
-		downloadDataset(baseUrl, outPath, workers, hdfs)
+		downloadDataset(baseURL, outPath, workers, hdfs)
 	},
 }
 
