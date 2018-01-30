@@ -12,13 +12,5 @@ The following commands exist:
 ## Installation
 
 ```
-go get github.com/src-d/datasets/sourset/multitool
+go get github.com/src-d/datasets/PublicGitArchive/multitool
 ```
-
-## Contributions
-
-...are welcome, see [CONTRIBUTING.md] and [code of conduct](CODE_OF_CONDUCT.md).
-
-## License
-
-Apache 2.0, see [LICENSE.md](LICENSE.md).
