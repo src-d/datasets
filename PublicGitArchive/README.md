@@ -1,4 +1,4 @@
-Public Git Archive
+Public Git Archive ![size 1.1TB](https://img.shields.io/badge/size-1.1TB-green.svg)
 ==================
 
 This dataset consists of two parts:
@@ -57,3 +57,7 @@ In the second terminal execute
 export CONFIG_ROOT_REPOSITORIES_DIR=/path/where/repositories/will/be/stored
 borges consumer
 ```
+
+## Blacklist
+
+We understand that some GitHub projects may become private or deleted with time. Previous dataset snapshots will continue to include such dead code. If you are the author and want to remove your project from all present and future public snapshots, please send a request to `datasets@sourced.tech`.
