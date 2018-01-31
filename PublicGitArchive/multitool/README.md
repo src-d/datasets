@@ -11,6 +11,10 @@ The following commands exist:
 
 ## Installation
 
+There are 64-bit binaries for Linux, MacOS and Windows on [Releases page](https://github.com/src-d/datasets/releases).
+
+## Build from source
+
 ```
 go get -v github.com/src-d/datasets/PublicGitArchive/multitool
 ```
