@@ -12,5 +12,5 @@ The following commands exist:
 ## Installation
 
 ```
-go get github.com/src-d/datasets/PublicGitArchive/multitool
+go get -v github.com/src-d/datasets/PublicGitArchive/multitool
 ```
