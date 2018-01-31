@@ -1,0 +1,54 @@
+dist: trusty
+sudo: false
+
+language: go
+
+go_import_path: github.com/src-d/datasets
+go:
+  - 1.8
+  - 1.9
+
+before_install:
+  - go get -v github.com/golang/lint/golint
+
+script:
+  - go vet ./...
+  - golint ./...
+  - go test -cpu=1,2 -coverprofile=coverage.txt -covermode=count ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+jobs:
+  include:
+    - stage: deploy
+      os: osx
+      go: 1.9
+      after_success:
+        - gzip -S .darwin_amd64.gz $GOPATH/bin/multitool
+      script: skip
+      deploy:
+        provider: releases
+        api_key:
+          secure: $GITHUB_TOKEN
+        file: "$GOPATH/bin/multitool.darwin_amd64.gz"
+        skip_cleanup: true
+        on:
+          tags: true
+    - stage: deploy
+      os: linux
+      go: 1.9
+      script: skip
+      after_success:
+        - gzip -S .linux_amd64.gz $GOPATH/bin/multitool
+      deploy:
+        provider: releases
+        api_key:
+          secure: $GITHUB_TOKEN
+        file: "$GOPATH/bin/multitool.linux_amd64.gz"
+        skip_cleanup: true
+        on:
+          tags: true
+
+notifications:
+  email: false
