@@ -2,14 +2,14 @@ version: "{build}"
 platform: x64
 image: Visual Studio 2017
 
-clone_folder: c:\gopath\src\gopkg.in\src-d\datasets
+clone_folder: c:\gopath\src\github.com\src-d\datasets
 
 environment:
   GOPATH: c:\gopath
 
 build_script:
   - go get -v github.com/src-d/datasets/PublicGitArchive/multitool
-  - 7z a c:\gopath\src\gopkg.in\src-d\datasets\multitool.win64.zip %GOPATH%\bin\multitool.exe
+  - 7z a c:\gopath\src\github.com\src-d\datasets\multitool.win64.zip %GOPATH%\bin\multitool.exe
 
 artifacts:
   - name: multitool.win64.zip
