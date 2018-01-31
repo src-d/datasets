@@ -1,4 +1,4 @@
-package multitool
+package main
 
 import (
 	"archive/tar"
