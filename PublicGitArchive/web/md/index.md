@@ -1,17 +1,17 @@
-# 190k repositories dataset
+# Public Git Archive
 
 On this dataset you can find all the repositories from GitHub with more than 50 stars.
 
 ## Links
 
 - ### [CSV file](LINK TO CSV FILE HERE)
-- ### [SIVA files](LINK TO SIVA FILES HERE)
+- ### [Siva files](LINK TO SIVA FILES HERE)
 
 ## Files explanation
 
 Description of the content of each file type and explanation about some key concepts.
 
-You can download and filter by csv data using [multitool](https://github.com/src-d/datasets/tree/master/PublicGitArchive).
+You can download and filter by csv data using [multitool](https://github.com/src-d/datasets/tree/master/PublicGitArchive/multitool).
 
 
 ### CSV with metadata per repository
