@@ -14,7 +14,7 @@ before_install:
 script:
   - if [[ "$(go version)" != *go1.8* ]]; then go vet ./...; fi
   - golint ./...
-  - go test -cpu=1,2 -coverprofile=coverage.txt -covermode=count ./...
+  - make test-coverage
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
