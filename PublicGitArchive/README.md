@@ -15,8 +15,9 @@ This dataset consists of two parts:
 To download an existing dataset, execute:
 
 ```
-multitool get-index -o index.txt.gz
-multitool get-dataset -o /path/where/repositories/will/be/stored
+multitool get-index -o index.csv
+# create siva_file_list.txt from index.csv by running custom query code
+cat siva_file_list.txt | multitool get-dataset -o /path/where/repositories/will/be/stored
 ```
 
 `get-dataset` command has `-j/--workers` argument which specifies the number of downloading threads

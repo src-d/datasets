@@ -25,7 +25,10 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-const defaultGhtorrentMySQL = "http://ghtorrent-downloads.ewi.tudelft.nl/mysql/"
+const (
+	defaultGhtorrentMySQL = "http://ghtorrent-downloads.ewi.tudelft.nl/mysql/"
+	defaultPGA            = "http://pga.sourced.tech/"
+)
 
 func fail(operation string, err error) {
 	fmt.Fprintf(os.Stderr, "Error: %s: %s\n", operation, err.Error())
@@ -456,7 +459,7 @@ func downloadIndex(baseURL string, outputPath string) {
 	if err != nil {
 		fail("parsing "+baseURL, err)
 	}
-	latestURL, _ := url.Parse("latest.csv.gz")
+	latestURL, _ := url.Parse("csv/latest.csv.gz")
 	effectiveURL := indexURL.ResolveReference(latestURL).String()
 	response, err := http.Get(effectiveURL)
 	if err != nil {
@@ -490,7 +493,7 @@ func downloadIndex(baseURL string, outputPath string) {
 	if err != nil {
 		fail("failed to download "+effectiveURL, err)
 	}
-	fmt.Fprintf(os.Stderr, "Read      %s\nWrote      %s\n",
+	fmt.Fprintf(os.Stderr, "Read      %s\nWrote     %s\n",
 		humanize.Bytes(uint64(totalRead)), humanize.Bytes(uint64(bytesWritten)))
 }
 
@@ -634,7 +637,7 @@ func (backend *hdfsDownloadBackend) Download(state interface{}, response *http.R
 	}
 }
 
-func downloadDataset(baseURL string, outPath string, workers int, hdfs string) {
+func downloadDataset(baseURL string, series string, outPath string, workers int, hdfs string) {
 	base, err := url.Parse(baseURL)
 	if err != nil {
 		fail("parsing "+baseURL, err)
@@ -667,7 +670,8 @@ func downloadDataset(baseURL string, outPath string, workers int, hdfs string) {
 	})
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		fileURL, err := url.Parse(scanner.Text())
+		line := scanner.Text()
+		fileURL, err := url.Parse(fmt.Sprintf("siva/%s/%s/%s", series, line[:2], line))
 		if err != nil {
 			fail("failed to parse file names: "+scanner.Text(), err)
 		}
@@ -759,9 +763,10 @@ var getDatasetCmd = &cobra.Command{
 		flags := cmd.Flags()
 		outPath, _ := flags.GetString("output")
 		baseURL, _ := flags.GetString("base")
+		series, _ := flags.GetString("series")
 		workers, _ := flags.GetInt("workers")
 		hdfs, _ := flags.GetString("hdfs")
-		downloadDataset(baseURL, outPath, workers, hdfs)
+		downloadDataset(baseURL, series, outPath, workers, hdfs)
 	},
 }
 
@@ -808,11 +813,12 @@ func init() {
 	selectCmd.MarkFlagRequired("stars")
 
 	getIndexFlags := getIndexCmd.Flags()
-	getIndexFlags.StringP("base", "b", "", "Base URL for index files.")
+	getIndexFlags.StringP("base", "b", defaultPGA, "Base URL for index files.")
 	getIndexFlags.StringP("output", "o", "-", "Output path. \"-\" means stdout (default).")
 
 	getDatasetFlags := getDatasetCmd.Flags()
-	getDatasetFlags.StringP("base", "b", "", "Base URL for Siva files.")
+	getDatasetFlags.StringP("base", "b", defaultPGA, "Base URL for Siva files.")
+	getDatasetFlags.StringP("series", "s", "latest", "Snapshot name.")
 	getDatasetFlags.StringP("output", "o", "", "Output directory. Required. If starts with "+
 		"\"hdfs://\", files are written to HDFS.")
 	getDatasetFlags.String("hdfs", "", "HDFS namenode address:port.")
