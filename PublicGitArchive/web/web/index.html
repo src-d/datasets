@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
+    <title>Public Git Archive</title>
+    <link type="text/css" rel="stylesheet" href="assets/css/github-markdown.css">
+    <link type="text/css" rel="stylesheet" href="assets/css/pilcrow.css">
+    <link type="text/css" rel="stylesheet" href="assets/css/hljs-github.min.css"/>
+  </head>
+  <body>
+    <article class="markdown-body"><h1 id="public-git-archive"><a class="header-link" href="#public-git-archive"></a>Public Git Archive</h1>
+<p>On this dataset you can find all the repositories from GitHub with more than 50 stars.</p>
+<h2 id="links"><a class="header-link" href="#links"></a>Links</h2>
+<ul class="list">
+<li><h3 id="[csv-file](link-to-csv-file-here)"><a class="header-link" href="#[csv-file](link-to-csv-file-here)"></a><a href="LINK TO CSV FILE HERE">CSV file</a></h3>
+</li>
+<li><h3 id="[siva-files](link-to-siva-files-here)"><a class="header-link" href="#[siva-files](link-to-siva-files-here)"></a><a href="LINK TO SIVA FILES HERE">Siva files</a></h3>
+</li>
+</ul>
+<h2 id="files-explanation"><a class="header-link" href="#files-explanation"></a>Files explanation</h2>
+<p>Description of the content of each file type and explanation about some key concepts.</p>
+<p>You can download and filter by csv data using <a href="https://github.com/src-d/datasets/tree/master/PublicGitArchive/multitool">multitool</a>.</p>
+<h3 id="csv-with-metadata-per-repository"><a class="header-link" href="#csv-with-metadata-per-repository"></a>CSV with metadata per repository</h3>
+<p>A CSV with useful data per each repository on the dataset. The columns on the CSV are:</p>
+<table>
+<thead>
+<tr>
+<th>Column name</th>
+<th>Column description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td>The url of the GitHub repository that allow us to access to the Github web interface.</td>
+</tr>
+<tr>
+<td>SIVA_FILENAMES</td>
+<td>List of siva filenames that contains one or more branches from that specific repository.</td>
+</tr>
+<tr>
+<td>FILE_COUNT</td>
+<td>Number of files on Commit pointed by default HEAD.</td>
+</tr>
+<tr>
+<td>LANGS</td>
+<td>List of languages contained on that repository on default HEAD.</td>
+</tr>
+<tr>
+<td>LANGS_BYTE_COUNT</td>
+<td>List of bytes count per each language contained on that repository on default HEAD. The order should be the same that LANGS column.</td>
+</tr>
+<tr>
+<td>LANGS_LINES_COUNT</td>
+<td>List of lines per each language contained on that repository on default HEAD. Ordered as previous languages counters.</td>
+</tr>
+<tr>
+<td>LANGS_FILES_COUNT</td>
+<td>List of number of files written in each language contained on that repository on default HEAD. Ordered as previous languages counters.</td>
+</tr>
+<tr>
+<td>COMMITS_HEAD_COUNT</td>
+<td>Number of commits on the history obtained by the commit pointed by default HEAD. The output is the same as <code>git rev-list --count HEAD</code>.</td>
+</tr>
+<tr>
+<td>COMMITS_COUNT</td>
+<td>Count with all the unique commits on all the siva files that contains this repository.</td>
+</tr>
+<tr>
+<td>BRANCHES_COUNT</td>
+<td>Number of references on that repository, excluding tags.</td>
+</tr>
+<tr>
+<td>FORK_COUNT</td>
+<td>Number of remotes on all the siva files on the subset that contains that repository.</td>
+</tr>
+<tr>
+<td>EMPTY_LINES_COUNT</td>
+<td>Number of empty lines on files on commit pointed by default HEAD.</td>
+</tr>
+<tr>
+<td>CODE_LINES_COUNT</td>
+<td>Number of lines with code on files on commit pointed by default HEAD.</td>
+</tr>
+<tr>
+<td>COMMENT_LINES_COUNT</td>
+<td>Number of commented lines on files on commit pointed by default HEAD</td>
+</tr>
+<tr>
+<td>LICENSE</td>
+<td>License of the repository</td>
+</tr>
+</tbody>
+</table>
+<h3 id="siva-files-with-rooted-repositories"><a class="header-link" href="#siva-files-with-rooted-repositories"></a>SIVA files with rooted repositories</h3>
+<p>Siva files contains <strong>rooted repositories</strong> with all the git objects from the standard repositories. A <strong>rooted repository is</strong> a standard Git repository that stores all objects from all repositories that share common history, identified by same initial commit:</p>
+<p class="img-container"><img src="assets/rooted-repository.png" alt="Root Repository explanatory diagram"></p>
+<p>Using rooted repositories we avoid data duplication as much as possible.</p>
+<p>To read siva files, you can use: </p>
+<ul class="list">
+<li><a href="https://github.com/src-d/go-siva">Go library implementation</a></li>
+<li><a href="https://github.com/src-d/siva-java">Java reader implementation</a></li>
+<li><a href="https://github.com/src-d/engine">Engine. Spark Datasource to read repositories</a></li>
+</ul>
+    </article>
+  </body>
+</html>
