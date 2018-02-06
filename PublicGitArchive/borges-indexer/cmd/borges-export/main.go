@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/src-d/datasets/borges-indexer"
+	"github.com/src-d/datasets/PublicGitArchive/borges-indexer"
 	"gopkg.in/src-d/core-retrieval.v0"
 )
 
