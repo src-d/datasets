@@ -1,0 +1,27 @@
+version: "{build}"
+platform: x64
+image: Visual Studio 2017
+
+clone_folder: c:\gopath\src\gopkg.in\src-d\go-license-detector.v1
+
+environment:
+  GOPATH: c:\gopath
+
+build_script:
+  - go version
+  - go get -v gopkg.in/src-d/go-license-detector.v1/cmd/license-detector
+  - 7z a c:\gopath\src\gopkg.in\src-d\go-license-detector.v1\license-detector.windows_amd64.zip %GOPATH%\bin\license-detector.exe
+
+artifacts:
+  - name: license-detector.windows_amd64.zip
+    path: license-detector.windows_amd64.zip
+
+deploy:
+  release: $(APPVEYOR_REPO_TAG_NAME)
+  provider: GitHub
+  auth_token:
+    secure: 78zsH4q19DqcpdkwnYHQoe0BakBfv+LGu1W7mXuaBC9mS87+EuAj3+yTzJv4NEfI
+  artifact: license-detector.windows_amd64.zip
+  on:
+    branch: master
+    appveyor_repo_tag: true
