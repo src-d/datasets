@@ -29,8 +29,8 @@
     "mvcc/mvccpb",
     "pkg/types"
   ]
-  revision = "1b3ac99e8a431b381e633802cc42fe70e663baf5"
-  version = "v3.2.15"
+  revision = "c23606781f63d09917a1e7abfcefeb337a9608ea"
+  version = "v3.3.0"
 
 [[projects]]
   branch = "master"
@@ -57,11 +57,19 @@
   version = "v1.7.0"
 
 [[projects]]
+  name = "github.com/gogo/protobuf"
+  packages = [
+    "gogoproto",
+    "proto",
+  ]
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
-    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -82,6 +90,18 @@
   revision = "d14ea06fba99483203c19d92cfcd13ebe73135f4"
 
 [[projects]]
+  name = "github.com/jdkato/prose"
+  packages = [
+    "chunk",
+    "internal/model",
+    "internal/util",
+    "tag",
+    "tokenize"
+  ]
+  revision = "20d3663d4bc9dd10d75abcde9d92e04b4861c674"
+  version = "v1.1.0"
+
+[[projects]]
   name = "github.com/kelseyhightower/envconfig"
   packages = ["."]
   revision = "f611eb38b3875cc3bd991ca91c51d06446afa14c"
@@ -90,8 +110,8 @@
 [[projects]]
   name = "github.com/kevinburke/ssh_config"
   packages = ["."]
-  revision = "fa48d7ff1cfb9f26c514b80d520880394293bf08"
-  version = "0.2"
+  revision = "0ff8514904a8ebfcfb3c32ad73e1f8498a7f81b4"
+  version = "0.3"
 
 [[projects]]
   branch = "master"
@@ -112,7 +132,7 @@
     ".",
     "oid"
   ]
-  revision = "19c8e9ad00952ce0c64489b60e8df88bb16dd514"
+  revision = "88edab0803230a3898347e77b474f8c1820a1f20"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -131,6 +151,12 @@
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+
+[[projects]]
+  name = "github.com/montanaflynn/stats"
+  packages = ["."]
+  revision = "eeaced052adbcfeea372c749c281099ed7fdaa38"
+  version = "0.2.0"
 
 [[projects]]
   name = "github.com/oklog/ulid"
@@ -163,6 +189,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/shogo82148/go-shuffle"
+  packages = ["."]
+  revision = "59829097ff3b062427a69e2c461ef60523e37280"
+
+[[projects]]
+  branch = "master"
   name = "github.com/shurcooL/sanitized_anchor_name"
   packages = ["."]
   revision = "86672fcb3f950f35f2e675df2240550f2a50762f"
@@ -188,7 +220,7 @@
   branch = "master"
   name = "github.com/streadway/amqp"
   packages = ["."]
-  revision = "54ded0531dfd699a7893861d39a7a949c5749bc9"
+  revision = "fc7fda2371f5327ad39211e09482845b8734cc72"
 
 [[projects]]
   branch = "master"
@@ -223,7 +255,7 @@
     "ssh/knownhosts",
     "ssh/terminal"
   ]
-  revision = "0efb9460aaf800c6376acf625be2853bceac2e06"
+  revision = "1875d0a70c90e57f11972aefd42276df65e895b9"
 
 [[projects]]
   branch = "master"
@@ -236,6 +268,8 @@
   name = "golang.org/x/net"
   packages = [
     "context",
+    "html",
+    "html/atom",
     "http2",
     "http2/hpack",
     "idna",
@@ -243,7 +277,7 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "0ed95abb35c445290478a5348a7b38bb154135fd"
+  revision = "2fb46b16b8dda405028c50f7c7f0f9dd1fa6bfb1"
 
 [[projects]]
   branch = "master"
@@ -252,7 +286,7 @@
     "unix",
     "windows"
   ]
-  revision = "03467258950d845cd1877eab69461b98e8c09219"
+  revision = "37707fdb30a5b38865cfb95e5aab41707daec7fd"
 
 [[projects]]
   branch = "master"
@@ -298,7 +332,7 @@
     "stat",
     "stat/distuv"
   ]
-  revision = "870bcdceb64d7ebcf96f33e1c3d89eb1ec3bbd8a"
+  revision = "996b88e8f8941c9defdbb338bea5e239a230e742"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -319,10 +353,7 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = [
-    "googleapis/api/annotations",
-    "googleapis/rpc/status"
-  ]
+  packages = ["googleapis/rpc/status"]
   revision = "4eb30f4778eed4c258ba66527a0d4f9ec8a36c45"
 
 [[projects]]
@@ -360,6 +391,15 @@
   packages = ["."]
   revision = "0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3"
   version = "v2.13"
+
+[[projects]]
+  name = "gopkg.in/neurosnap/sentences.v1"
+  packages = [
+    ".",
+    "data"
+  ]
+  revision = "a7f18ead1433a139742a8b42ce7a059cfb484d60"
+  version = "v1.0.6"
 
 [[projects]]
   name = "gopkg.in/russross/blackfriday.v2"
@@ -413,8 +453,8 @@
     "osfs",
     "util"
   ]
-  revision = "e940f8b62a8e61adc71f69802c1cc8305b64ec96"
-  version = "v4.0.2"
+  revision = "027dceab1aa836eb310d92c2eb2266e4dc9f4b81"
+  version = "v4.1.0"
 
 [[projects]]
   name = "gopkg.in/src-d/go-errors.v0"
@@ -481,7 +521,7 @@
 [[projects]]
   name = "gopkg.in/src-d/go-license-detector.v1"
   packages = ["."]
-  revision = "4faf1fd1f234c23a8cfd2dcb22043b6187bb1eef"
+  revision = "2df2a3fc3f7b83e2d8f0ca9568b91e596a988b4a"
   version = "v1"
 
 [[projects]]

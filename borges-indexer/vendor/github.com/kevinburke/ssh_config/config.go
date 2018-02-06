@@ -43,7 +43,7 @@ import (
 	"sync"
 )
 
-const version = "0.2"
+const version = "0.3"
 
 type configFinder func() string
 
@@ -55,7 +55,6 @@ type UserSettings struct {
 	systemConfigFinder configFinder
 	userConfig         *Config
 	userConfigFinder   configFinder
-	username           string
 	loadConfigs        sync.Once
 	onceErr            error
 }
@@ -242,8 +241,6 @@ type Config struct {
 // Config contains an invalid conditional Include value.
 //
 // The match for key is case insensitive.
-//
-// Get is a wrapper around DefaultUserSettings.Get.
 func (c *Config) Get(alias, key string) (string, error) {
 	lowerKey := strings.ToLower(key)
 	for _, host := range c.Hosts {
@@ -277,12 +274,20 @@ func (c *Config) Get(alias, key string) (string, error) {
 }
 
 // String returns a string representation of the Config file.
-func (c *Config) String() string {
+func (c Config) String() string {
+	return marshal(c).String()
+}
+
+func (c Config) MarshalText() ([]byte, error) {
+	return marshal(c).Bytes(), nil
+}
+
+func marshal(c Config) *bytes.Buffer {
 	var buf bytes.Buffer
 	for i := range c.Hosts {
 		buf.WriteString(c.Hosts[i].String())
 	}
-	return buf.String()
+	return &buf
 }
 
 // Pattern is a pattern in a Host declaration. Patterns are read-only values;

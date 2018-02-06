@@ -76,6 +76,8 @@ var (
 	urlCleanupRe = regexp.MustCompile("[<(](http(s?)://[^\\s]+)[)>]")
 )
 
+// NormalizeLicenseText makes a license text ready for analysis.
+// It follows SPDX guidelines at
 // https://spdx.org/spdx-license-list/matching-guidelines
 func NormalizeLicenseText(text string, strict bool) string {
 	// Line endings

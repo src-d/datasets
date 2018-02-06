@@ -11,9 +11,11 @@ import (
 )
 
 var (
-	NoLicenseFoundError = errors.New("no license file was found")
+	// ErrNoLicenseFound is raised if no license files were found.
+	ErrNoLicenseFound = errors.New("no license file was found")
 
 	globalLicenseDatabase = &LicenseDatabase{}
+
 	// Base names of guessable license files.
 	fileNames = []string{
 		"copying",
@@ -21,6 +23,7 @@ var (
 		"copyright",
 		"license",
 		"unlicense",
+		"licence",
 	}
 
 	// License file extensions. Combined with the fileNames slice
@@ -37,15 +40,20 @@ var (
 	filePreprocessors = map[string]func(string) string{
 		".md":   PreprocessMarkdown,
 		".rst":  PreprocessRestructuredText,
-		".html": PreprocessHtml,
+		".html": PreprocessHTML,
 	}
 
-	fileRe = regexp.MustCompile(
+	licenseFileRe = regexp.MustCompile(
 		fmt.Sprintf("^(%s)(%s)$",
 			strings.Join(fileNames, "|"),
 			strings.Replace(strings.Join(fileExtensions, "|"), ".", "\\.", -1)))
+
+	readmeFileRe = regexp.MustCompile(fmt.Sprintf("^readme(%s)$",
+			strings.Replace(strings.Join(fileExtensions, "|"), ".", "\\.", -1)))
 )
 
+// InvestigateProjectLicenses returns the most probable reference licenses matched for the given
+// file tree. Each match has the confidence assigned, from 0 to 1, 1 means 100% confident.
 func InvestigateProjectLicenses(path string) (map[string]float32, error) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -57,20 +65,39 @@ func InvestigateProjectLicenses(path string) (map[string]float32, error) {
 			fileNames = append(fileNames, file.Name())
 		}
 	}
-	candidates := ExtractLicenseFiles(fileNames, func(file string) (string, error) {
+	return InvestigateFilesLicenses(fileNames, func(file string) (string, error) {
 		text, err := ioutil.ReadFile(paths.Join(path, file))
 		return string(text), err
 	})
-	if len(candidates) == 0 {
-		return nil, NoLicenseFoundError
-	}
-	return InvestigateFiles(candidates), nil
 }
 
+// InvestigateFilesLicenses scans the given list of file names, reads them with `reader` and
+// detects the licenses. Each match has the confidence assigned, from 0 to 1, 1 means 100% confident.
+func InvestigateFilesLicenses(
+		fileNames []string, reader func(string) (string, error)) (map[string]float32, error) {
+	candidates := ExtractLicenseFiles(fileNames, reader)
+	if len(candidates) == 0 {
+		// Plan B: take the README, find the section about the license and apply NER
+		candidates = ExtractReadmeFiles(fileNames, reader)
+		if len(candidates) == 0 {
+			return nil, ErrNoLicenseFound
+		}
+		licenses := InvestigateReadmeFiles(candidates)
+		if len(licenses) == 0 {
+			return nil, ErrNoLicenseFound
+		}
+		return licenses, nil
+	}
+	return InvestigateLicenseFiles(candidates), nil
+}
+
+// ExtractLicenseFiles returns the list of possible license texts.
+// The file names are matched against the template.
+// Reader is used to to read file contents.
 func ExtractLicenseFiles(files []string, reader func(string) (string, error)) []string {
 	candidates := []string{}
 	for _, file := range files {
-		if fileRe.MatchString(strings.ToLower(file)) {
+		if licenseFileRe.MatchString(strings.ToLower(file)) {
 			text, err := reader(file)
 			if err == nil {
 				if preprocessor, exists := filePreprocessors[paths.Ext(file)]; exists {
@@ -83,26 +110,70 @@ func ExtractLicenseFiles(files []string, reader func(string) (string, error)) []
 	return candidates
 }
 
-func InvestigateFiles(texts []string) map[string]float32 {
+// InvestigateLicenseFiles takes the list of candidate license texts and returns the most probable
+// reference licenses matched. Each match has the confidence assigned, from 0 to 1, 1 means 100% confident.
+func InvestigateLicenseFiles(texts []string) map[string]float32 {
 	maxLicenses := map[string]float32{}
 	for _, text := range texts {
-		options, similarities := InvestigateFile(text)
-		for i, sim := range similarities {
-			maxSim := maxLicenses[options[i]]
+		candidates := InvestigateLicenseFile(text)
+		for name, sim := range candidates {
+			maxSim := maxLicenses[name]
 			if sim > maxSim {
-				maxLicenses[options[i]] = sim
+				maxLicenses[name] = sim
 			}
 		}
 	}
 	return maxLicenses
 }
 
-func InvestigateFile(text string) (options []string, similarities []float32) {
-	return globalLicenseDatabase.Query(text)
+// InvestigateLicenseFile takes the license text and returns the most probable reference licenses matched.
+// Each match has the confidence assigned, from 0 to 1, 1 means 100% confident.
+func InvestigateLicenseFile(text string) map[string]float32 {
+	return globalLicenseDatabase.QueryLicenseText(text)
+}
+
+// ExtractReadmeFiles searches for README files.
+// Reader is used to to read file contents.
+func ExtractReadmeFiles(files []string, reader func(string) (string, error)) []string {
+	candidates := []string{}
+	for _, file := range files {
+		if readmeFileRe.MatchString(strings.ToLower(file)) {
+			text, err := reader(file)
+			if err == nil {
+				if preprocessor, exists := filePreprocessors[paths.Ext(file)]; exists {
+					text = preprocessor(text)
+				}
+				candidates = append(candidates, text)
+			}
+		}
+	}
+	return candidates
+}
+
+// InvestigateReadmeFiles scans README files for licensing information and outputs the
+// probable names using NER.
+func InvestigateReadmeFiles(texts []string) map[string]float32 {
+	maxLicenses := map[string]float32{}
+	for _, text := range texts {
+		candidates := InvestigateReadmeFile(text)
+		for name, sim := range candidates {
+			maxSim := maxLicenses[name]
+			if sim > maxSim {
+				maxLicenses[name] = sim
+			}
+		}
+	}
+	return maxLicenses
+}
+
+// InvestigateReadmeFile scans the README file for licensing information and outputs probable
+// names found with Named Entity Recognition from NLP.
+func InvestigateReadmeFile(text string) map[string]float32 {
+	return globalLicenseDatabase.QueryReadmeText(text)
 }
 
 func init() {
-	if os.Getenv("LICENSENG_DEBUG") != "" {
+	if os.Getenv("LICENSE_DEBUG") != "" {
 		globalLicenseDatabase.Debug = true
 	}
 	globalLicenseDatabase.Load()

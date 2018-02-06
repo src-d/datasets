@@ -5,272 +5,128 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 var (
-	badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s*)`)
-	linkTagRE     = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
-	badLinkHrefRE = regexp.MustCompile(`#|javascript:`)
-	headerRE      = regexp.MustCompile("/h[2-6]")
-	fakeTagRE     = regexp.MustCompile("[^a-zA-Z0-9/]")
-	fakeTags      = map[string]bool{
-		"program":   true,
-		"year":      true,
-		"copyright": true,
-		"author":    true,
-	}
+	skipHTMLRe   = regexp.MustCompile(`^(head|script|style|object)$`)
+	htmlHeaderRe = regexp.MustCompile("^h[2-6]$")
+	htmlEntityRe = regexp.MustCompile("&((#\\d+)|([a-zA-Z]+));")
+	marksRe      = regexp.MustCompile("[#$%*/\\\\|><~`=!?.,:;\"'\\])}-]")
 )
 
-func parseHTMLEntity(entName string) (string, bool) {
-	entName = strings.ToLower(entName)
+func parseHTMLEntity(entName []byte) []byte {
+	entNameStr := strings.ToLower(string(entName[1 : len(entName)-1]))
 
-	if strings.HasPrefix(entName, "#") {
-		val, err := strconv.Atoi(entName[1:])
+	if entNameStr[0] == '#' {
+		val, err := strconv.Atoi(entNameStr[1:])
 		if err != nil {
-			return "", false
+			return entName
 		}
-		return string(rune(val)), true
+		return []byte(string(rune(val)))
 	}
-	// possible entities
-	switch entName {
+	// the list is not full
+	switch entNameStr {
 	case "nbsp":
-		return " ", true
+		return []byte(" ")
 	case "gt":
-		return ">", true
+		return []byte(">")
 	case "lt":
-		return "<", true
+		return []byte("<")
 	case "amp":
-		return "&", true
+		return []byte("&")
 	case "quot":
-		return "\"", true
+		return []byte("\"")
 	case "apos":
-		return "'", true
+		return []byte("'")
 	case "cent":
-		return "¢", true
+		return []byte("¢")
 	case "pound":
-		return "£", true
+		return []byte("£")
 	case "yen":
-		return "¥", true
+		return []byte("¥")
 	case "euro":
-		return "€", true
+		return []byte("€")
 	case "copy":
-		return "©", true
+		return []byte("©")
 	case "reg":
-		return "®", true
+		return []byte("®")
 	case "ldquo":
-		return "\"", true
+		return []byte("\"")
 	case "rdquo":
-		return "\"", true
+		return []byte("\"")
 	case "lsquo":
-		return "'", true
+		return []byte("'")
 	case "rsquo":
-		return "'", true
+		return []byte("'")
 	case "sbquo":
-		return "\"", true
+		return []byte("\"")
 	case "rbquo":
-		return "\"", true
+		return []byte("\"")
 	case "bdquo":
-		return "\"", true
+		return []byte("\"")
 	case "ndash":
-		return "-", true
+		return []byte("-")
 	case "mdash":
-		return "-", true
+		return []byte("-")
 	case "bull":
-		return "*", true
+		return []byte("*")
 	case "hellip":
-		return "...", true
+		return []byte("...")
 	case "prime":
-		return "'", true
+		return []byte("'")
 	case "lsaquo":
-		return "'", true
+		return []byte("'")
 	case "rsaquo":
-		return "'", true
+		return []byte("'")
 	case "trade":
-		return "™", true
+		return []byte("™")
 	case "minus":
-		return "-", true
+		return []byte("-")
 	case "raquo":
-		return "\"", true
+		return []byte("\"")
 	case "laquo":
-		return "\"", true
+		return []byte("\"")
 	case "deg":
-		return "°", true
+		return []byte("°")
 	case "sect":
-		return "*", true
+		return []byte("*")
 	case "iexcl":
-		return "¡", true
+		return []byte("¡")
 	default:
-		return "", false
+		return entName
 	}
-
 }
 
-// HTMLEntitiesToText decodes HTML entities inside a provided
-// string and returns decoded text
-func HTMLEntitiesToText(htmlEntsText string) string {
-	outBuf := bytes.NewBufferString("")
-	inEnt := false
-
-	for i, r := range htmlEntsText {
-		switch {
-		case r == ';' && inEnt:
-			inEnt = false
+// PreprocessHTML converts HTML to plain text. E.g. it rips all the tags.
+func PreprocessHTML(htmlSource string) string {
+	result := &bytes.Buffer{}
+	doc := html.NewTokenizer(strings.NewReader(htmlSource))
+	skip := false
+	for token := doc.Next(); token != html.ErrorToken; token = doc.Next() {
+		tagName, _ := doc.TagName()
+		if skipHTMLRe.Match(tagName) {
+			if doc.Token().Type != html.SelfClosingTagToken {
+				skip = !skip
+			}
 			continue
-
-		case r == '&': //possible html entity
-			entName := ""
-			isEnt := false
-
-			// parse the entity name - max 10 chars
-			chars := 0
-			for _, er := range htmlEntsText[i+1:] {
-				if er == ';' {
-					isEnt = true
-					break
-				} else {
-					entName += string(er)
-				}
-
-				chars++
-				if chars == 10 {
-					break
-				}
-			}
-
-			if isEnt {
-				if ent, isEnt := parseHTMLEntity(entName); isEnt {
-					outBuf.WriteString(ent)
-					inEnt = true
-					continue
-				}
-			}
 		}
-
-		if !inEnt {
-			outBuf.WriteRune(r)
+		if skip {
+			continue
+		}
+		text := doc.Text()
+		text = htmlEntityRe.ReplaceAllFunc(text, parseHTMLEntity)
+		text = bytes.Replace(text, []byte("\u00a0"), []byte(" "), -1)
+		result.Write(text)
+		if string(tagName) == "br" {
+			result.WriteRune('\n')
+		} else if htmlHeaderRe.Match(tagName) && doc.Token().Type == html.EndTagToken {
+			last := result.Bytes()[result.Len()-1]
+			if !marksRe.MatchString(string(last)) {
+				result.WriteRune('.')
+			}
 		}
 	}
-
-	return outBuf.String()
-}
-
-// HTML2Text converts html into a text form
-func HTML2Text(html string) string {
-	inLen := len(html)
-	tagStart := 0
-	inEnt := false
-	badTagStackDepth := 0 // if == 1 it means we are inside <head>...</head>
-	shouldOutput := true
-	// new line cannot be printed at the beginning or
-	// for <p> after a new line created by previous <p></p>
-	canPrintNewline := false
-
-	outBuf := bytes.NewBufferString("")
-
-	for i, r := range html {
-		if inLen > 0 && i == inLen-1 {
-			// prevent new line at the end of the document
-			canPrintNewline = false
-		}
-
-		switch {
-		case r < '\n', r > '\n' && r < 0x20:
-			continue
-
-		case r == '\n', r == 0x85, r == 0x2028, r == 0x2029: // new lines
-			outBuf.WriteString("\n")
-			continue
-
-		case r == ';' && inEnt: // end of html entity
-			inEnt = false
-			shouldOutput = true
-			continue
-
-		case r == '&' && shouldOutput: // possible html entity
-			entName := ""
-			isEnt := false
-
-			// parse the entity name - max 10 chars
-			chars := 0
-			for _, er := range html[i+1:] {
-				if er == ';' {
-					isEnt = true
-					break
-				} else {
-					entName += string(er)
-				}
-
-				chars++
-				if chars == 10 {
-					break
-				}
-			}
-
-			if isEnt {
-				if ent, isEnt := parseHTMLEntity(entName); isEnt {
-					outBuf.WriteString(ent)
-					inEnt = true
-					shouldOutput = false
-					continue
-				}
-			}
-
-		case r == '<': // start of a tag
-			tagStart = i + 1
-			shouldOutput = false
-			continue
-
-		case r == '>': // end of a tag
-			shouldOutput = true
-			tagName := strings.ToLower(html[tagStart:i])
-
-			if tagName == "br" || tagName == "br/" {
-				// new line
-				outBuf.WriteString("\r\n")
-			} else if tagName == "p" || tagName == "/p" {
-				if canPrintNewline {
-					outBuf.WriteString("\r\n")
-				}
-				canPrintNewline = false
-			} else if headerRE.MatchString(tagName) {
-				// end header with a dot
-				if html[tagStart-2] != '.' {
-					outBuf.WriteRune('.')
-				}
-			} else if badTagnamesRE.MatchString(tagName) {
-				// unwanted block
-				badTagStackDepth++
-
-				// parse link href
-				m := linkTagRE.FindStringSubmatch(tagName)
-				if len(m) == 4 {
-					link := m[2]
-					if len(link) == 0 {
-						link = m[3]
-					}
-
-					if !badLinkHrefRE.MatchString(link) {
-						outBuf.WriteString(HTMLEntitiesToText(link))
-					}
-				}
-			} else if len(tagName) > 0 && tagName[0] == '/' &&
-				badTagnamesRE.MatchString(tagName[1:]) {
-				// end of unwanted block
-				badTagStackDepth--
-			}
-			if (fakeTagRE.MatchString(tagName) || fakeTags[tagName]) &&
-				strings.Index(tagName, "=") < 0 && tagName[0] != '/' {
-				outBuf.WriteString("<" + tagName + ">")
-			}
-			continue
-
-		} // switch end
-
-		if shouldOutput && badTagStackDepth == 0 && !inEnt {
-			canPrintNewline = true
-			outBuf.WriteRune(r)
-		}
-	}
-
-	return outBuf.String()
+	return result.String()
 }

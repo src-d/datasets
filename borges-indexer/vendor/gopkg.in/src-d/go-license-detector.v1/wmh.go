@@ -7,6 +7,8 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
+// WeightedMinHasher calculates Weighted MinHash-es.
+// https://ekzhu.github.io/datasketch/weightedminhash.html
 type WeightedMinHasher struct {
 	dim        int
 	sampleSize int
@@ -15,6 +17,10 @@ type WeightedMinHasher struct {
 	betas      [][]float32
 }
 
+// NewWeightedMinHasher initializes a new instance of WeightedMinHasher.
+// `dim` is the bag size.
+// `sampleSize` is the hash length.
+// `seed` is the random generator seed, as Weighted MinHash is probabilistic.
 func NewWeightedMinHasher(dim int, sampleSize int, seed int64) *WeightedMinHasher {
 	randSrc := rand.New(rand.NewSource(uint64(seed)))
 	gammaGen := distuv.Gamma{Alpha: 2, Beta: 1, Src: randSrc}
@@ -47,6 +53,8 @@ func NewWeightedMinHasher(dim int, sampleSize int, seed int64) *WeightedMinHashe
 	return hasher
 }
 
+// Hash calculates the Weighted MinHash from the weighted bag of features.
+// Each feature has an index and a value.
 func (wmh *WeightedMinHasher) Hash(values []float32, indices []int) []uint64 {
 	hashvalues := make([]uint64, wmh.sampleSize)
 	for s := 0; s < wmh.sampleSize; s++ {
