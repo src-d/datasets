@@ -1,4 +1,4 @@
-Public Git Archive ![size 1.1TB](https://img.shields.io/badge/size-1.1TB-green.svg)
+Public Git Archive ![size 1.1TB](https://img.shields.io/badge/size-2.7TB-green.svg)
 ==================
 
 This dataset consists of two parts:
