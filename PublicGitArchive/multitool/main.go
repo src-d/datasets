@@ -729,12 +729,18 @@ var selectCmd = &cobra.Command{
 		filteredLangs, _ := flags.GetString("filter-languages")
 		topN, _ := flags.GetInt("max")
 		urlTemplate, _ := flags.GetString("url-template")
+		var filteredLangsSplitted []string
+		if len(filteredLangs) == 0 {
+			filteredLangsSplitted = []string{}
+		} else {
+			filteredLangsSplitted = strings.Split(filteredLangs, ",")
+		}
 		selectRepos(selectionParameters{
 			StarsFile:         starsFile,
 			LanguagesFile:     langs,
 			ReposFile:         reposFile,
 			MinStars:          minStars,
-			FilteredLanguages: strings.Split(filteredLangs, ","),
+			FilteredLanguages: filteredLangsSplitted,
 			TopN:              topN,
 			URLTemplate:       urlTemplate,
 		})
