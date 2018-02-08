@@ -63,7 +63,8 @@ func main() {
 	}
 
 	header, records := records[0], records[1:]
-	records = setForks(records)
+	resetForks(records)
+	setForks(records)
 
 	if err := w.WriteAll(append([][]string{header}, records...)); err != nil {
 		logrus.WithField("err", err).Fatal("unable to write records")
@@ -72,7 +73,7 @@ func main() {
 	logrus.Info("finished setting forks for repos")
 }
 
-func setForks(records [][]string) [][]string {
+func setForks(records [][]string) {
 	var reposBySiva = make(map[string][]string)
 	for _, r := range records {
 		for _, s := range strings.Split(r[ /*SIVA_FILENAMES*/ 1], ",") {
@@ -85,8 +86,12 @@ func setForks(records [][]string) [][]string {
 			r[ /*FORK_COUNT*/ 9] = fmt.Sprint(toi(r[9]) + len(reposBySiva[s]) - 1)
 		}
 	}
+}
 
-	return records
+func resetForks(records [][]string) {
+	for _, r := range records {
+		r[ /* FORK_COUNT*/ 9] = "0"
+	}
 }
 
 func toi(s string) int {
