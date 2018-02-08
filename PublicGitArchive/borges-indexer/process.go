@@ -1,6 +1,7 @@
 package export
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -151,14 +152,21 @@ func processRepos(
 				defer wg.Done()
 				log := logrus.WithField("repo", repo.ID)
 				log.Debug("starting worker")
-				data, err := newProcessor(repo, txer, locker).process()
-				if err != nil {
-					log.WithField("err", err).Error("unable to process repository")
-					return
-				}
+				defer log.Debug("stopping worker")
 
-				ch <- data
-				log.Debug("stopping worker")
+				data, err := newProcessor(repo, txer, locker).process()
+				if err == errNoHEAD {
+					log.WithField("repo", repo.ID).Warn("empty repository")
+					ch <- &repositoryData{
+						URL:       getRepoURL(repo),
+						License:   make(map[string]float32),
+						Languages: make(map[string]language),
+					}
+				} else if err != nil {
+					log.WithField("err", err).Error("unable to process repository")
+				} else {
+					ch <- data
+				}
 			})
 		}
 
@@ -189,6 +197,8 @@ func newProcessor(
 	}
 }
 
+var errNoHEAD = errors.New("repository has no HEAD")
+
 func (p *processor) process() (*repositoryData, error) {
 	log := logrus.WithField("repo", p.dbRepo.ID)
 	log.Debug("start processing repository")
@@ -209,7 +219,7 @@ func (p *processor) process() (*repositoryData, error) {
 	}
 
 	if head == empty {
-		return nil, fmt.Errorf("repository has no HEAD")
+		return nil, errNoHEAD
 	}
 
 	mut := p.locker.lock(head.String())
@@ -302,6 +312,23 @@ func (p *processor) process() (*repositoryData, error) {
 	return data, nil
 }
 
+func getRepoURL(repo *model.Repository) string {
+	if len(repo.Endpoints) == 0 {
+		return ""
+	}
+
+	url := repo.Endpoints[0]
+	// initialize to first github url, if any
+	for _, e := range repo.Endpoints {
+		if strings.Contains(e, "github.com") {
+			url = e
+			break
+		}
+	}
+
+	return url
+}
+
 func (p *processor) data() (*repositoryData, error) {
 	log := logrus.WithField("repo", p.dbRepo.ID)
 	log.Debug("start building repo data")
@@ -311,16 +338,7 @@ func (p *processor) data() (*repositoryData, error) {
 	}()
 
 	var data repositoryData
-
-	// default value
-	data.URL = p.dbRepo.Endpoints[0]
-	// initialize to first github url, if any
-	for _, e := range p.dbRepo.Endpoints {
-		if strings.Contains(e, "github.com") {
-			data.URL = e
-			break
-		}
-	}
+	data.URL = getRepoURL(p.dbRepo)
 
 	head, err := p.head()
 	if err != nil {
