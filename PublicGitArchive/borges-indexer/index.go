@@ -1,4 +1,4 @@
-package export
+package indexer
 
 import (
 	"encoding/csv"
@@ -11,14 +11,15 @@ import (
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
-// Export to the given output csv file all the processed repositories in
+// Index to the given output csv file all the processed repositories in
 // the given store.
-func Export(
+func Index(
 	store *model.RepositoryStore,
 	txer repository.RootedTransactioner,
 	outputFile string,
 	limit uint64,
 	offset uint64,
+	list []string,
 ) {
 	f, err := createOutputFile(outputFile)
 	if err != nil {
@@ -33,7 +34,7 @@ func Export(
 	}
 	w.Flush()
 
-	rs, total, err := getResultSet(store, limit, offset)
+	rs, total, err := getResultSet(store, limit, offset, list)
 	if err != nil {
 		logrus.WithField("err", err).Fatal("unable to get result set")
 	}
@@ -86,12 +87,27 @@ func createOutputFile(outputFile string) (*os.File, error) {
 func getResultSet(
 	store *model.RepositoryStore,
 	limit, offset uint64,
+	list []string,
 ) (*model.RepositoryResultSet, int64, error) {
 	query := model.NewRepositoryQuery().
 		FindByStatus(model.Fetched)
+
+	var repos = make([]interface{}, len(list))
+	for i, r := range list {
+		repos[i] = r
+	}
+
+	if len(list) > 0 {
+		query = query.Where(kallax.ArrayOverlap(
+			model.Schema.Repository.Endpoints,
+			repos...,
+		))
+	}
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
+
 	if limit > 0 {
 		query = query.Offset(offset)
 	}

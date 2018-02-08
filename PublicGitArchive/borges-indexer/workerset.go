@@ -1,4 +1,4 @@
-package export
+package indexer
 
 type workerSet struct {
 	maxWorkers int
