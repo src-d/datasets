@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/src-d/datasets/PublicGitArchive/borges-indexer"
@@ -15,6 +17,7 @@ func main() {
 	logfile := flag.String("logfile", "", "write logs to file")
 	limit := flag.Uint64("limit", 0, "max number of repositories to process")
 	offset := flag.Uint64("offset", 0, "skip initial n repositories")
+	reposFile := flag.String("repos-file", "", "path to a file with a repository per line, only those will be processed")
 	flag.Parse()
 
 	if *debug {
@@ -39,11 +42,26 @@ func main() {
 		logrus.SetOutput(f)
 	}
 
-	export.Export(
+	var repos []string
+	if *reposFile != "" {
+		content, err := ioutil.ReadFile(*reposFile)
+		if err != nil {
+			logrus.WithField("err", err).Fatalf("unable to read repositories file: %s", *reposFile)
+		}
+
+		for _, r := range strings.Split(string(content), "\n") {
+			if strings.TrimSpace(r) != "" {
+				repos = append(repos, r)
+			}
+		}
+	}
+
+	indexer.Index(
 		core.ModelRepositoryStore(),
 		core.RootedTransactioner(),
 		*output,
 		*limit,
 		*offset,
+		repos,
 	)
 }
