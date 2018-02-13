@@ -27,7 +27,10 @@ jobs:
       go: 1.9
       after_success:
         - gzip -S .darwin_amd64.gz $GOPATH/bin/multitool
-        - tar -czf borges-indexer.darwin_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
+        - tar -czf $GOPATH/bin/borges-indexer.darwin_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
+      install:
+        - go get -v github.com/src-d/datasets/PublicGitArchive/multitool/...
+        - go get -v github.com/src-d/datasets/PublicGitArchive/borges-indexer/...
       script: skip
       deploy:
         provider: releases
@@ -42,10 +45,13 @@ jobs:
     - stage: deploy
       os: linux
       go: 1.9
+      install:
+        - go get -v github.com/src-d/datasets/PublicGitArchive/multitool/...
+        - go get -v github.com/src-d/datasets/PublicGitArchive/borges-indexer/...
       script: skip
       after_success:
         - gzip -S .linux_amd64.gz $GOPATH/bin/multitool
-        - tar -czf borges-indexer.linux_amd64.gz -C $GOPATH/bin borges-indexer set-forks
+        - tar -czf $GOPATH/bin/borges-indexer.linux_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
       deploy:
         provider: releases
         api_key:
