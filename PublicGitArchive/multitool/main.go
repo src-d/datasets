@@ -73,30 +73,32 @@ type watchPair struct {
 	Key   int
 }
 
-type watchPairs []watchPair
-
-func (pairs watchPairs) Len() int {
-	return len(pairs)
-}
-
-func (pairs watchPairs) Less(i, j int) bool {
-	return pairs[i].Value > pairs[j].Value // reverse order
-}
-func (pairs watchPairs) Swap(i, j int) {
-	pairs[i], pairs[j] = pairs[j], pairs[i]
-}
-
-func writeWatchers(stars map[int]int, path string) {
-	pairs := make(watchPairs, len(stars))
-	{
-		i := 0
-		for key, val := range stars {
-			pairs[i].Key = key
-			pairs[i].Value = val
-			i++
+func writeWatchers(stars map[int]int, ids map[int][]int, path string) {
+	pairs := make([]watchPair, 0, len(stars))
+	majors := map[int]bool{}
+	for key := range stars {
+		myids := ids[key]
+		// if it is a reference, go to the main repository
+		if myids[0] >= 0 {
+			key = myids[0]
+			myids = ids[key]
 		}
+		if majors[key] {
+			continue
+		}
+		majors[key] = true
+		maxval := stars[key]
+		for _, id := range myids[1:] {
+			other := stars[id]
+			if other > maxval {
+				maxval = other
+			}
+		}
+		pairs = append(pairs, watchPair{Key: key, Value: maxval})
 	}
-	sort.Sort(pairs)
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].Value > pairs[j].Value // reverse order
+	})
 	f, err := os.Create(path)
 	defer f.Close()
 	if err != nil {
@@ -107,7 +109,7 @@ func writeWatchers(stars map[int]int, path string) {
 	}
 }
 
-func writeProjects(stream io.Reader, path string) {
+func writeProjects(stream io.Reader, path string) map[int][]int {
 	f, err := os.Create(path)
 	defer f.Close()
 	if err != nil {
@@ -117,6 +119,8 @@ func writeProjects(stream io.Reader, path string) {
 	defer gzf.Close()
 	scanner := bufio.NewScanner(stream)
 	skip := false
+	projects := map[string]int{}
+	ids := map[int][]int{}
 	for scanner.Scan() {
 		line := scanner.Text()
 		skipThis := skip
@@ -138,8 +142,22 @@ func writeProjects(stream io.Reader, path string) {
 		line = line[commaPos+1+30:] // +"https://api.github.com/repos/
 		commaPos = strings.Index(line, "\"")
 		projectName := line[:commaPos]
-		fmt.Fprintf(gzf, "%d %s\n", projectID, projectName)
+		// there can be duplicates
+		// the slice is always at least one element
+		// negative value means the original (main) repository
+		// otherwise it is a reference to the main one
+		if existingID, exists := projects[projectName]; !exists {
+			projects[projectName] = projectID
+			ids[projectID] = make([]int, 1, 1)
+			ids[projectID][0] = -1
+			fmt.Fprintf(gzf, "%d %s\n", projectID, projectName)
+		} else {
+			ids[existingID] = append(ids[existingID], projectID)
+			ids[projectID] = make([]int, 1, 1)
+			ids[projectID][0] = existingID
+		}
 	}
+	return ids
 }
 
 func writeLanguages(stream io.Reader, path string) {
@@ -278,6 +296,8 @@ func discoverRepos(params discoveryParameters) {
 	}
 	status := 0
 	i := 0
+	var stars map[int]int
+	var ids map[int][]int
 	for header, err := tarf.Next(); err != io.EOF; header, err = tarf.Next() {
 		if err != nil {
 			fail("reading tar.gz", err)
@@ -300,14 +320,17 @@ func discoverRepos(params discoveryParameters) {
 		}
 		fmt.Printf("\r%s %2d  %7s  %s\n", mark, i, strSize, header.Name)
 		if isWatchers {
-			writeWatchers(reduceWatchers(tarf), params.StarsPath)
+			stars = reduceWatchers(tarf)
 			status++
 		} else if isProjects {
-			writeProjects(tarf, params.ReposPath)
+			ids = writeProjects(tarf, params.ReposPath)
 			status++
 		} else if isLanguages && params.LanguagesPath != "" {
 			writeLanguages(tarf, params.LanguagesPath)
 			status++
+		}
+		if stars != nil && ids != nil {
+			writeWatchers(stars, ids, params.StarsPath)
 		}
 		if status == numTasks {
 			break
