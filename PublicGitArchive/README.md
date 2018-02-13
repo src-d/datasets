@@ -9,6 +9,7 @@ This dataset consists of two parts:
 ## Tools
 
 * [multitool](multitool) - compile the list of repositories and retrieve an existing dataset.
+* [borges-indexer](borges-indexer) - exports a CSV file with metadata from repositories fetched with Borges.
 
 ## Download
 
