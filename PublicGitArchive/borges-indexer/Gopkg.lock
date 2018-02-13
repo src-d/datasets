@@ -61,6 +61,7 @@
   packages = [
     "gogoproto",
     "proto",
+    "protoc-gen-gogo/descriptor",
   ]
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
   version = "v1.0.0"
@@ -70,6 +71,7 @@
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
+    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",

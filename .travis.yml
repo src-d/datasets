@@ -13,7 +13,8 @@ before_install:
 
 script:
   - if [[ "$(go version)" != *go1.8* ]]; then go vet ./...; fi
-  - golint ./...
+  - lintwarns=$(golint ./... | grep src-d/datasets || true)
+  - if [ ! -z $lintwarns ]; then echo $lintwarns; false; fi
   - make test-coverage
 
 after_success:
@@ -26,12 +27,15 @@ jobs:
       go: 1.9
       after_success:
         - gzip -S .darwin_amd64.gz $GOPATH/bin/multitool
+        - tar -czf borges-indexer.darwin_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
       script: skip
       deploy:
         provider: releases
         api_key:
           secure: $GITHUB_TOKEN
-        file: "$GOPATH/bin/multitool.darwin_amd64.gz"
+        file:
+          - "$GOPATH/bin/multitool.darwin_amd64.gz"
+          - "$GOPATH/bin/borges-indexer.darwin_amd64.tar.gz"
         skip_cleanup: true
         on:
           tags: true
@@ -41,11 +45,14 @@ jobs:
       script: skip
       after_success:
         - gzip -S .linux_amd64.gz $GOPATH/bin/multitool
+        - tar -czf borges-indexer.linux_amd64.gz -C $GOPATH/bin borges-indexer set-forks
       deploy:
         provider: releases
         api_key:
           secure: $GITHUB_TOKEN
-        file: "$GOPATH/bin/multitool.linux_amd64.gz"
+        file:
+          - "$GOPATH/bin/multitool.linux_amd64.gz"
+          - "$GOPATH/bin/borges-indexer.linux_amd64.tar.gz"
         skip_cleanup: true
         on:
           tags: true

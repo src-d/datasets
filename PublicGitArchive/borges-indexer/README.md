@@ -1,5 +1,5 @@
 # borges-indexer
-Exports a CSV file from repositories fetched with Borges.
+Exports a CSV index file from repositories fetched with Borges.
 
 ## Installation
 
