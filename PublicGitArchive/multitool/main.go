@@ -674,7 +674,7 @@ func downloadDataset(baseURL string, series string, outPath string, workers int,
 	defer bar.Finish()
 	totalUrls := 0
 	finishedUrls := 0
-	urls := make(chan *url.URL)
+	urls := make(chan *url.URL, 1 << 24)
 	defer close(urls)
 	var backend downloadBackend
 	if strings.HasPrefix(outPath, "hdfs://") {
