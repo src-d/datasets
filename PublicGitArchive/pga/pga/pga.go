@@ -45,7 +45,10 @@ func (idx *csvIndex) Next() (*Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	return RepositoryFromCSV(rows)
+	if rows[0] != expectedHeader[0] {
+		return RepositoryFromCSV(rows)
+	}
+	return idx.Next()
 }
 
 var expectedHeader = []string{

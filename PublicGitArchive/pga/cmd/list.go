@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
@@ -15,7 +14,7 @@ var listCmd = &cobra.Command{
 	Short: "list all the repositories in the index",
 	Long:  `List the repositories in the index, use flags to filter the results.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		f, err := os.Open("/Users/francesc/Downloads/latest.csv")
+		f, err := getIndex()
 		if err != nil {
 			return fmt.Errorf("could not open index file: %v", err)
 		}
