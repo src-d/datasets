@@ -6,9 +6,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
+	"golang.org/x/sync/errgroup"
+	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 // downloadCmd represents the download command
@@ -38,6 +42,22 @@ var downloadCmd = &cobra.Command{
 			return err
 		}
 
+		maxDownloads, err := cmd.Flags().GetInt("jobs")
+		if err != nil {
+			return err
+		}
+		tokens := make(chan bool, maxDownloads)
+		for i := 0; i < maxDownloads; i++ {
+			tokens <- true
+		}
+
+		var jobs struct {
+			total int
+			done  int
+			sync.Mutex
+		}
+
+		var group errgroup.Group
 		index = pga.WithFilter(index, filter)
 		for {
 			r, err := index.Next()
@@ -47,15 +67,46 @@ var downloadCmd = &cobra.Command{
 				return err
 			}
 
-			for _, filename := range r.Filenames {
-				if err := download(dest, filename); err != nil {
-					return fmt.Errorf("could not download %s: %v", filename, err)
-				}
-			}
+			jobs.Lock()
+			jobs.total += len(r.Filenames)
+			jobs.Unlock()
 
-			fmt.Println(r.URL)
+			for _, filename := range r.Filenames {
+
+				filename := filename // avoid data race
+				group.Go(func() error {
+					<-tokens
+					defer func() {
+						jobs.Lock()
+						jobs.done++
+						jobs.Unlock()
+						tokens <- true
+					}()
+					if err := download(dest, filename); err != nil {
+						return fmt.Errorf("could not download %s: %v", filename, err)
+					}
+
+					return nil
+				})
+			}
 		}
-		return nil
+		errc := make(chan error, 1)
+		go func() { errc <- group.Wait() }()
+
+		jobs.Lock()
+		bar := pb.StartNew(jobs.total)
+		jobs.Unlock()
+		tick := time.Tick(time.Second)
+		for {
+			select {
+			case err := <-errc:
+				return err
+			case <-tick:
+				jobs.Lock()
+				bar.Set(jobs.done)
+				jobs.Unlock()
+			}
+		}
 	},
 }
 
@@ -95,4 +146,5 @@ func init() {
 	RootCmd.AddCommand(downloadCmd)
 	addFilterFlags(downloadCmd.Flags())
 	downloadCmd.Flags().StringP("output", "o", ".", "path where the siva files should be stored")
+	downloadCmd.Flags().IntP("jobs", "j", 10, "number of concurrent downloads allowed")
 }
