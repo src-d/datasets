@@ -13,8 +13,7 @@ var cfgFile string
 var RootCmd = &cobra.Command{
 	Use:   "pga",
 	Short: "pga: the Public Git Archive downloader",
-	Long: `pga allows you to filter and download files from the
-Public Git Archive dataset.
+	Long: `pga allows you to filter and download files from the Public Git Archive dataset.
 
 For more info, check http://pga.sourced.tech/`,
 }

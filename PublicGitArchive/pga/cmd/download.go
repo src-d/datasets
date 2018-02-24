@@ -21,39 +21,37 @@ var downloadCmd = &cobra.Command{
 	Short: "downloads all the repositories in the index",
 	Long:  `Downloads the repositories in the index, use flags to filter the results.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		filter, err := filterFromFlags(cmd.Flags())
+		if err != nil {
+			return err
+		}
+		dest, err := cmd.Flags().GetString("output")
+		if err != nil {
+			return err
+		}
+		maxDownloads, err := cmd.Flags().GetInt("jobs")
+		if err != nil {
+			return err
+		}
+
 		f, err := getIndex()
 		if err != nil {
 			return fmt.Errorf("could not open index file: %v", err)
 		}
 		defer f.Close()
-
-		dest, err := cmd.Flags().GetString("output")
-		if err != nil {
-			return err
-		}
-
 		index, err := pga.IndexFromCSV(f)
 		if err != nil {
 			return err
 		}
 
-		filter, err := filterFromFlags(cmd.Flags())
-		if err != nil {
-			return err
-		}
-
-		maxDownloads, err := cmd.Flags().GetInt("jobs")
-		if err != nil {
-			return err
-		}
 		tokens := make(chan bool, maxDownloads)
 		for i := 0; i < maxDownloads; i++ {
 			tokens <- true
 		}
 
-		var jobs struct {
-			total int
-			done  int
+		var totalJobs int
+		var jobsDone struct {
+			n int
 			sync.Mutex
 		}
 
@@ -67,44 +65,39 @@ var downloadCmd = &cobra.Command{
 				return err
 			}
 
-			jobs.Lock()
-			jobs.total += len(r.Filenames)
-			jobs.Unlock()
+			totalJobs += len(r.Filenames)
 
 			for _, filename := range r.Filenames {
-
 				filename := filename // avoid data race
 				group.Go(func() error {
 					<-tokens
 					defer func() {
-						jobs.Lock()
-						jobs.done++
-						jobs.Unlock()
+						jobsDone.Lock()
+						jobsDone.n++
+						jobsDone.Unlock()
 						tokens <- true
 					}()
 					if err := download(dest, filename); err != nil {
-						return fmt.Errorf("could not download %s: %v", filename, err)
+						fmt.Fprintf(os.Stderr, "could not download %s: %v\n", filename, err)
 					}
-
 					return nil
 				})
 			}
 		}
-		errc := make(chan error, 1)
-		go func() { errc <- group.Wait() }()
 
-		jobs.Lock()
-		bar := pb.StartNew(jobs.total)
-		jobs.Unlock()
+		done := make(chan struct{})
+		go func() { group.Wait(); close(done) }()
+
+		bar := pb.StartNew(totalJobs)
 		tick := time.Tick(time.Second)
 		for {
 			select {
-			case err := <-errc:
-				return err
+			case <-done:
+				return nil
 			case <-tick:
-				jobs.Lock()
-				bar.Set(jobs.done)
-				jobs.Unlock()
+				jobsDone.Lock()
+				bar.Set(jobsDone.n)
+				jobsDone.Unlock()
 			}
 		}
 	},
