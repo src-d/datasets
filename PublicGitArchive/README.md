@@ -21,11 +21,19 @@ multitool get-index -o index.csv
 cat siva_file_list.txt | multitool get-dataset -o /path/where/repositories/will/be/stored
 ```
 
+One-liner to fetch all the files:
+
+```
+multitool get-index | grep -oP '[a-z0-9]{40}\.siva' | multitool get-dataset -o /path/where/repositories/will/be/stored
+```
+
 `get-dataset` command has `-j/--workers` argument which specifies the number of downloading threads
 to run.
 
 Both `get-index` and `get-dataset` have `-b/--base` argument which specifies the base URL of the datasets.
 source{d}'s address is hardcoded to be the default.
+
+Example of getting only Java repositories: [examples/java.md](examples/java.md).
 
 ## Reproduction
 
