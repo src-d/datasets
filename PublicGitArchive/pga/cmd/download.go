@@ -118,10 +118,10 @@ func download(dest, name string) error {
 	url := fmt.Sprintf("http://pga.sourced.tech/siva/latest/%s/%s", name[:2], name)
 	res, err := http.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get %s: %v", url, err)
 	}
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf(res.Status)
+		return fmt.Errorf("could not get %s: %s", url, res.Status)
 	}
 
 	_, err = io.Copy(f, res.Body)
