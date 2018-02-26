@@ -552,6 +552,7 @@ func (manager *downloadManager) work() {
 		response, err := http.Get(job.String())
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to connect to %s\n", job.String())
+			continue
 		}
 		func() {
 			defer response.Body.Close()
