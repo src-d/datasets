@@ -15,10 +15,10 @@ import (
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
-// downloadCmd represents the download command
-var downloadCmd = &cobra.Command{
-	Use:   "download",
-	Short: "downloads all the repositories in the index",
+// getCmd represents the get command
+var getCmd = &cobra.Command{
+	Use:   "get",
+	Short: "gets all the repositories in the index",
 	Long:  `Downloads the repositories in the index, use flags to filter the results.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filter, err := filterFromFlags(cmd.Flags())
@@ -77,8 +77,8 @@ var downloadCmd = &cobra.Command{
 						jobsDone.Unlock()
 						tokens <- true
 					}()
-					if err := download(dest, filename); err != nil {
-						fmt.Fprintf(os.Stderr, "could not download %s: %v\n", filename, err)
+					if err := get(dest, filename); err != nil {
+						fmt.Fprintf(os.Stderr, "could not get %s: %v\n", filename, err)
 					}
 					return nil
 				})
@@ -103,7 +103,7 @@ var downloadCmd = &cobra.Command{
 	},
 }
 
-func download(dest, name string) error {
+func get(dest, name string) error {
 	dir := filepath.Join(dest, "siva", "latest", name[:2])
 	if err := os.MkdirAll(dir, 0777); err != nil {
 		return fmt.Errorf("could not create destination directory: %v", err)
@@ -136,8 +136,8 @@ func download(dest, name string) error {
 }
 
 func init() {
-	RootCmd.AddCommand(downloadCmd)
-	addFilterFlags(downloadCmd.Flags())
-	downloadCmd.Flags().StringP("output", "o", ".", "path where the siva files should be stored")
-	downloadCmd.Flags().IntP("jobs", "j", 10, "number of concurrent downloads allowed")
+	RootCmd.AddCommand(getCmd)
+	addFilterFlags(getCmd.Flags())
+	getCmd.Flags().StringP("output", "o", ".", "path where the siva files should be stored")
+	getCmd.Flags().IntP("jobs", "j", 10, "number of concurrent gets allowed")
 }

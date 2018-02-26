@@ -12,25 +12,106 @@ import (
 
 // Repository contains the data used to filter the index and download files.
 type Repository struct {
-	URL       string   // URL of the repository.
-	Filenames []string // Siva filenames.
-	FileCount int64    // Number of files in the repository.
-	Languages []string // Languages found in the repository.
+	URL       string   `json:"url"`           // URL of the repository.
+	Filenames []string `json:"sivaFilenames"` // Siva filenames.
+	License   string   `json:"license"`       // Main license name of the repository.
+
+	// Stats per language
+	Languages             []string `json:"langs"`             // Languages found in the repository.
+	LanguagesByteCount    []int64  `json:"langsByteCount"`    // Number of bytes for the language in same index.
+	LanguagesLineCount    []int64  `json:"langsLinesCount"`   // Number of lines of code for the language in same index.
+	LanguagesFileCount    []int64  `json:"langsFilesCount"`   // Number of files in the language in the same index.
+	LanguagesEmptyLines   []int64  `json:"emptyLinesCount"`   // Number of blank lines for the language in the same index
+	LanguagesCodeLines    []int64  `json:"codeLinesCount"`    // Number of lines of code for the language in the same index.
+	LanguagesCommentLines []int64  `json:"commentLinesCount"` // Number of comment lines for the language in the same index.
+
+	// Global stats
+	Files    int64 `json:"fileCount"`     // Number of files in the repository.
+	Commits  int64 `json:"commitsCount"`  // Number of commits in the repository.
+	Branches int64 `json:"branchesCount"` // Number of branches in the repository.
+	Forks    int64 `json:"forkCount"`     // Number of forks of this repository.
+}
+
+// CSVHeaders are the headers expected for the CSV formatted index.
+func CSVHeaders() []string {
+	cp := make([]string, len(csvHeaders))
+	copy(cp, csvHeaders)
+	return cp
+}
+
+const (
+	headerURL = iota
+	headerSivaFilenames
+	headerFileCount
+	headerLangs
+	headerLangsByteCount
+	headerLangsLinesCount
+	headerLangsFilesCount
+	headerCommitsCount
+	headerBranchesCount
+	headerForkCount
+	headerEmptyLinesCount
+	headerCodeLinesCount
+	headerCommentLinesCount
+	headerLicense
+)
+
+var csvHeaders = []string{
+	headerURL:               "URL",
+	headerSivaFilenames:     "SIVA_FILENAMES",
+	headerFileCount:         "FILE_COUNT",
+	headerLangs:             "LANGS",
+	headerLangsByteCount:    "LANGS_BYTE_COUNT",
+	headerLangsLinesCount:   "LANGS_LINES_COUNT",
+	headerLangsFilesCount:   "LANGS_FILES_COUNT",
+	headerCommitsCount:      "COMMITS_COUNT",
+	headerBranchesCount:     "BRANCHES_COUNT",
+	headerForkCount:         "FORK_COUNT",
+	headerEmptyLinesCount:   "EMPTY_LINES_COUNT",
+	headerCodeLinesCount:    "CODE_LINES_COUNT",
+	headerCommentLinesCount: "COMMENT_LINES_COUNT",
+	headerLicense:           "LICENSE",
 }
 
 // RepositoryFromCSV returns a repository given a CSV representation of it.
-func RepositoryFromCSV(cols []string) (*Repository, error) {
-	fileCount, err := strconv.ParseInt(cols[2], 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse file count in %s: %v", cols[2], err)
-	}
-
+func RepositoryFromCSV(cols []string) (repo *Repository, err error) {
+	p := parser{cols: cols}
 	return &Repository{
-		URL:       cols[0],
-		Filenames: strings.Split(cols[1], ","),
-		FileCount: fileCount,
-		Languages: strings.Split(cols[3], ","),
-	}, nil
+		URL:                   p.string(headerURL),
+		Filenames:             p.stringList(headerSivaFilenames),
+		Files:                 p.int(headerFileCount),
+		Languages:             p.stringList(headerLangs),
+		LanguagesByteCount:    p.intList(headerLangsByteCount),
+		LanguagesLineCount:    p.intList(headerLangsLinesCount),
+		LanguagesFileCount:    p.intList(headerLangsFilesCount),
+		Commits:               p.int(headerCommitsCount),
+		Branches:              p.int(headerBranchesCount),
+		Forks:                 p.int(headerForkCount),
+		LanguagesEmptyLines:   p.intList(headerEmptyLinesCount),
+		LanguagesCodeLines:    p.intList(headerCodeLinesCount),
+		LanguagesCommentLines: p.intList(headerCommentLinesCount),
+		License:               cols[headerLicense],
+	}, p.err
+}
+
+// ToCSV returns a slice of strings corresponding to the CSV representation of the repository.
+func (r *Repository) ToCSV() []string {
+	return []string{
+		headerURL:               r.URL,
+		headerSivaFilenames:     formatStringList(r.Filenames),
+		headerFileCount:         formatInt(r.Files),
+		headerLangs:             formatStringList(r.Languages),
+		headerLangsByteCount:    formatIntList(r.LanguagesByteCount),
+		headerLangsLinesCount:   formatIntList(r.LanguagesLineCount),
+		headerLangsFilesCount:   formatIntList(r.LanguagesFileCount),
+		headerCommitsCount:      formatInt(r.Commits),
+		headerBranchesCount:     formatInt(r.Branches),
+		headerForkCount:         formatInt(r.Forks),
+		headerEmptyLinesCount:   formatIntList(r.LanguagesEmptyLines),
+		headerCodeLinesCount:    formatIntList(r.LanguagesCodeLines),
+		headerCommentLinesCount: formatIntList(r.LanguagesCommentLines),
+		headerLicense:           r.License,
+	}
 }
 
 // Index provides iteration over repositories.
@@ -45,30 +126,13 @@ func (idx *csvIndex) Next() (*Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	if rows[0] != expectedHeader[0] {
+	if rows[0] != csvHeaders[0] {
 		return RepositoryFromCSV(rows)
 	}
 	return idx.Next()
 }
 
-var expectedHeader = []string{
-	"URL",
-	"SIVA_FILENAMES",
-	"FILE_COUNT",
-	"LANGS",
-	"LANGS_BYTE_COUNT",
-	"LANGS_LINES_COUNT",
-	"LANGS_FILES_COUNT",
-	"COMMITS_COUNT",
-	"BRANCHES_COUNT",
-	"FORK_COUNT",
-	"EMPTY_LINES_COUNT",
-	"CODE_LINES_COUNT",
-	"COMMENT_LINES_COUNT",
-	"LICENSE",
-}
-
-var errBadHeader = fmt.Errorf("bad header, expected %v", expectedHeader)
+var errBadHeader = fmt.Errorf("bad header, expected %s", strings.Join(csvHeaders, ","))
 
 // IndexFromCSV returns an Index reading from a CSV file.
 func IndexFromCSV(r io.Reader) (Index, error) {
@@ -78,11 +142,11 @@ func IndexFromCSV(r io.Reader) (Index, error) {
 		return nil, fmt.Errorf("could not skip headers row: %v", err)
 	}
 
-	if len(header) != len(expectedHeader) {
+	if len(header) != len(csvHeaders) {
 		return nil, errBadHeader
 	}
 	for i := range header {
-		if header[i] != expectedHeader[i] {
+		if header[i] != csvHeaders[i] {
 			return nil, errBadHeader
 		}
 	}
@@ -114,3 +178,65 @@ func (idx filterIndex) Next() (*Repository, error) {
 func WithFilter(index Index, filter Filter) Index {
 	return &filterIndex{index, filter}
 }
+
+type parser struct {
+	cols []string
+	err  error
+}
+
+func (p *parser) string(idx int) string { return p.cols[idx] }
+
+func (p *parser) stringList(idx int) []string {
+	s := p.cols[idx]
+	if s == "" {
+		return nil
+	}
+	return strings.Split(p.cols[idx], ",")
+}
+
+func (p *parser) int(idx int) int64 {
+	if p.err != nil {
+		return 0
+	}
+
+	s := p.cols[idx]
+	if s == "" {
+		return 0
+	}
+
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		p.err = fmt.Errorf("parsing %s integer %q: %v", csvHeaders[idx], s, err)
+	}
+	return v
+}
+
+func (p *parser) intList(idx int) []int64 {
+	if p.err != nil {
+		return nil
+	}
+
+	ts := p.stringList(idx)
+	vs := make([]int64, len(ts))
+	for i, t := range ts {
+		v, err := strconv.ParseInt(t, 10, 64)
+		if err != nil {
+			p.err = fmt.Errorf("could not parse %q in %s: %v", t, csvHeaders[idx], err)
+			return nil
+		}
+		vs[i] = v
+	}
+	return vs
+}
+
+func formatStringList(l []string) string { return strings.Join(l, ",") }
+
+func formatIntList(vs []int64) string {
+	ts := make([]string, len(vs))
+	for i, v := range vs {
+		ts[i] = formatInt(v)
+	}
+	return formatStringList(ts)
+}
+
+func formatInt(v int64) string { return strconv.FormatInt(v, 10) }

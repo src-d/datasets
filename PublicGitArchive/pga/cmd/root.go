@@ -1,3 +1,4 @@
+// Package cmd contains all of the subcommands available in the pga tool.
 package cmd
 
 import (
@@ -12,8 +13,8 @@ var cfgFile string
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "pga",
-	Short: "pga: the Public Git Archive downloader",
-	Long: `pga allows you to filter and download files from the Public Git Archive dataset.
+	Short: "The Public Git Archive exploration and download tool",
+	Long: `pga allows you to list, filterm and download files from the Public Git Archive dataset.
 
 For more info, check http://pga.sourced.tech/`,
 }

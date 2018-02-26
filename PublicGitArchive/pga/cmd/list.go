@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
@@ -30,6 +34,31 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
+		format, err := cmd.Flags().GetString("format")
+		if err != nil {
+			return err
+		}
+		var formatter func(r *pga.Repository) (string, error)
+		switch format {
+		case "url":
+			formatter = func(r *pga.Repository) (string, error) { return r.URL + "\n", nil }
+		case "json":
+			formatter = func(r *pga.Repository) (string, error) {
+				b, err := json.Marshal(r)
+				return string(b) + "\n", err
+			}
+		case "csv":
+			formatter = func(r *pga.Repository) (string, error) {
+				buf := new(bytes.Buffer)
+				w := csv.NewWriter(buf)
+				err := w.Write(r.ToCSV())
+				w.Flush()
+				return buf.String(), err
+			}
+		default:
+			return fmt.Errorf("unkown format in --format %q", format)
+		}
+
 		index = pga.WithFilter(index, filter)
 		for {
 			r, err := index.Next()
@@ -38,7 +67,12 @@ var listCmd = &cobra.Command{
 			} else if err != nil {
 				return err
 			}
-			fmt.Println(r.URL)
+
+			if s, err := formatter(r); err != nil {
+				fmt.Fprintf(os.Stderr, "could not format repository %s: %v\n", r.URL, err)
+			} else {
+				fmt.Print(s)
+			}
 		}
 		return nil
 	},
@@ -46,5 +80,7 @@ var listCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(listCmd)
-	addFilterFlags(listCmd.Flags())
+	flags := listCmd.Flags()
+	addFilterFlags(flags)
+	flags.StringP("format", "f", "url", "format of the output (url, csv, or json)")
 }
