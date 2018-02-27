@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,13 +20,10 @@ import (
 var getCmd = &cobra.Command{
 	Use:   "get",
 	Short: "gets all the repositories in the index",
-	Long:  `Downloads the repositories in the index, use flags to filter the results.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		filter, err := filterFromFlags(cmd.Flags())
-		if err != nil {
-			return err
-		}
+	Long: `Downloads the repositories in the index, use flags to filter the results.
 
+Alternatively, a list of .siva filenames can be passed through standard input.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		dest, err := destinationFromFlags(cmd.Flags())
 		if err != nil {
 			return err
@@ -35,14 +34,29 @@ var getCmd = &cobra.Command{
 			return err
 		}
 
-		f, err := getIndex()
-		if err != nil {
-			return fmt.Errorf("could not open index file: %v", err)
-		}
-		defer f.Close()
-		index, err := pga.IndexFromCSV(f)
-		if err != nil {
-			return err
+		var index pga.Index
+
+		if stat, _ := os.Stdin.Stat(); (stat.Mode() & os.ModeCharDevice) == 0 {
+			fmt.Fprintln(os.Stderr, "downloading siva files by name from stdin")
+			fmt.Fprintln(os.Stderr, "filter flags will be ignored")
+			index = getIndexFromStdin(os.Stdin)
+		} else {
+			f, err := getIndex()
+			if err != nil {
+				return fmt.Errorf("could not open index file: %v", err)
+			}
+			defer f.Close()
+
+			index, err = pga.IndexFromCSV(f)
+			if err != nil {
+				return err
+			}
+
+			filter, err := filterFromFlags(cmd.Flags())
+			if err != nil {
+				return err
+			}
+			index = pga.WithFilter(index, filter)
 		}
 
 		tokens := make(chan bool, maxDownloads)
@@ -56,7 +70,6 @@ var getCmd = &cobra.Command{
 		var totalJobs int
 
 		var group errgroup.Group
-		index = pga.WithFilter(index, filter)
 		for {
 			r, err := index.Next()
 			if err == io.EOF {
@@ -98,6 +111,27 @@ var getCmd = &cobra.Command{
 			}
 		}
 	},
+}
+
+type stdinIndex struct{ *bufio.Scanner }
+
+func (i stdinIndex) Next() (*pga.Repository, error) {
+	if !i.Scan() {
+		if i.Err() == nil {
+			return nil, io.EOF
+		}
+		return nil, i.Err()
+	}
+	s := i.Text()
+	if !strings.HasSuffix(s, ".siva") {
+		return nil, fmt.Errorf("expected siva filename, got %s", s)
+	}
+	fs := strings.Split(s, ",")
+	return &pga.Repository{Filenames: fs}, nil
+}
+
+func getIndexFromStdin(r io.Reader) pga.Index {
+	return stdinIndex{bufio.NewScanner(r)}
 }
 
 func get(dest *destination, name string) error {
