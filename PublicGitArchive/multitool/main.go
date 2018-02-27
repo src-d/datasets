@@ -554,6 +554,10 @@ func (manager *downloadManager) work() {
 			fmt.Fprintf(os.Stderr, "Failed to connect to %s\n", job.String())
 			continue
 		}
+		if response.StatusCode != 200 {
+			fmt.Fprintf(os.Stderr, "\n%s: HTTP %d\n", job.String(), response.StatusCode)
+			continue
+		}
 		func() {
 			defer response.Body.Close()
 			manager.backend.Download(state, response)
