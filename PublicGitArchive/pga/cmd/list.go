@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
 )
 
@@ -34,29 +35,9 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		format, err := cmd.Flags().GetString("format")
+		formatter, err := formatterFromFlags(cmd.Flags())
 		if err != nil {
 			return err
-		}
-		var formatter func(r *pga.Repository) (string, error)
-		switch format {
-		case "url":
-			formatter = func(r *pga.Repository) (string, error) { return r.URL + "\n", nil }
-		case "json":
-			formatter = func(r *pga.Repository) (string, error) {
-				b, err := json.Marshal(r)
-				return string(b) + "\n", err
-			}
-		case "csv":
-			formatter = func(r *pga.Repository) (string, error) {
-				buf := new(bytes.Buffer)
-				w := csv.NewWriter(buf)
-				err := w.Write(r.ToCSV())
-				w.Flush()
-				return buf.String(), err
-			}
-		default:
-			return fmt.Errorf("unkown format in --format %q", format)
 		}
 
 		index = pga.WithFilter(index, filter)
@@ -76,6 +57,35 @@ var listCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func formatterFromFlags(flags *pflag.FlagSet) (func(*pga.Repository) (string, error), error) {
+	format, err := flags.GetString("format")
+	if err != nil {
+		return nil, err
+	}
+
+	switch format {
+	case "url":
+		return func(r *pga.Repository) (string, error) {
+			return r.URL + "\n", nil
+		}, nil
+	case "json":
+		return func(r *pga.Repository) (string, error) {
+			b, err := json.Marshal(r)
+			return string(b) + "\n", err
+		}, nil
+	case "csv":
+		return func(r *pga.Repository) (string, error) {
+			buf := new(bytes.Buffer)
+			w := csv.NewWriter(buf)
+			err := w.Write(r.ToCSV())
+			w.Flush()
+			return buf.String(), err
+		}, nil
+	default:
+		return nil, fmt.Errorf("unkown format in --format %q", format)
+	}
 }
 
 func init() {
