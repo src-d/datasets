@@ -49,11 +49,10 @@ var getCmd = &cobra.Command{
 			tokens <- true
 		}
 
+		var jobsDone int
+		var mutex sync.Mutex
+		withMutex := func(f func()) { mutex.Lock(); f(); mutex.Unlock() }
 		var totalJobs int
-		var jobsDone struct {
-			n int
-			sync.Mutex
-		}
 
 		var group errgroup.Group
 		index = pga.WithFilter(index, filter)
@@ -72,9 +71,7 @@ var getCmd = &cobra.Command{
 				group.Go(func() error {
 					<-tokens
 					defer func() {
-						jobsDone.Lock()
-						jobsDone.n++
-						jobsDone.Unlock()
+						withMutex(func() { jobsDone++ })
 						tokens <- true
 					}()
 					if err := get(dest, filename); err != nil {
@@ -93,11 +90,10 @@ var getCmd = &cobra.Command{
 		for {
 			select {
 			case <-done:
+				withMutex(func() { bar.Set(jobsDone) })
 				return nil
 			case <-tick:
-				jobsDone.Lock()
-				bar.Set(jobsDone.n)
-				jobsDone.Unlock()
+				withMutex(func() { bar.Set(jobsDone) })
 			}
 		}
 	},
