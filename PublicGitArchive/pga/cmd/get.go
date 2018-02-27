@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -25,10 +24,12 @@ var getCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		dest, err := cmd.Flags().GetString("output")
+
+		dest, err := destinationFromFlags(cmd.Flags())
 		if err != nil {
 			return err
 		}
+
 		maxDownloads, err := cmd.Flags().GetInt("jobs")
 		if err != nil {
 			return err
@@ -99,16 +100,10 @@ var getCmd = &cobra.Command{
 	},
 }
 
-func get(dest, name string) error {
-	dir := filepath.Join(dest, "siva", "latest", name[:2])
-	if err := os.MkdirAll(dir, 0777); err != nil {
-		return fmt.Errorf("could not create destination directory: %v", err)
-	}
-
-	path := filepath.Join(dest, "siva", "latest", name[:2], name)
-	f, err := os.Create(path)
+func get(dest *destination, name string) error {
+	wc, err := dest.newWriter(name)
 	if err != nil {
-		return fmt.Errorf("could not create %s: %v", path, err)
+		return fmt.Errorf("could not create a new file in destination %s: %v", dest, err)
 	}
 
 	url := fmt.Sprintf("http://pga.sourced.tech/siva/latest/%s/%s", name[:2], name)
@@ -120,13 +115,13 @@ func get(dest, name string) error {
 		return fmt.Errorf("could not get %s: %s", url, res.Status)
 	}
 
-	_, err = io.Copy(f, res.Body)
+	_, err = io.Copy(wc, res.Body)
 	if err != nil {
-		f.Close()
-		return fmt.Errorf("could not copy to %s: %v", path, err)
+		wc.Close()
+		return fmt.Errorf("could not copy to %s: %v", dest, err)
 	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("could not close %s: %v", path, err)
+	if err := wc.Close(); err != nil {
+		return fmt.Errorf("could not close %s: %v", dest, err)
 	}
 	return nil
 }
