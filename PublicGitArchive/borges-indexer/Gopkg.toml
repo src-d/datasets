@@ -3,8 +3,8 @@
   branch = "master"
 
 [[constraint]]
-  name = "gopkg.in/src-d/go-license-detector.v1"
-  version = "1"
+  name = "gopkg.in/src-d/go-license-detector.v2"
+  version = "2"
 
 [[constraint]]
   name = "github.com/sirupsen/logrus"

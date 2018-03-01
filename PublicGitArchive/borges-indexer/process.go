@@ -20,7 +20,8 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-license-detector.v1"
+	"gopkg.in/src-d/go-license-detector.v2/licensedb"
+	"gopkg.in/src-d/go-license-detector.v2/licensedb/filer"
 )
 
 type repositoryData struct {
@@ -379,7 +380,11 @@ func (p *processor) data() (*repositoryData, error) {
 		return nil, fmt.Errorf("unable to get head commits: %s", err)
 	}
 
-	data.License, err = ld.InvestigateProjectLicenses(path)
+    loader, err := filer.FromDirectory(path)
+    if err != nil {
+        return nil, fmt.Errorf("unable to read %s: %s", path, err)
+    }
+	data.License, err = licensedb.Detect(loader)
 	if err != nil {
 		data.License = make(map[string]float32)
 		logrus.WithField("repo", data.URL).WithField("err", err).

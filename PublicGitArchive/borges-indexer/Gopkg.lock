@@ -61,7 +61,7 @@
   packages = [
     "gogoproto",
     "proto",
-    "protoc-gen-gogo/descriptor",
+    "protoc-gen-gogo/descriptor"
   ]
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
   version = "v1.0.0"
@@ -71,7 +71,6 @@
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
-    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -302,6 +301,7 @@
     "internal/triegen",
     "internal/ucd",
     "language",
+    "runes",
     "secure/bidirule",
     "transform",
     "unicode/bidi",
@@ -521,10 +521,17 @@
   version = "v1.3.3"
 
 [[projects]]
-  name = "gopkg.in/src-d/go-license-detector.v1"
-  packages = ["."]
-  revision = "2df2a3fc3f7b83e2d8f0ca9568b91e596a988b4a"
-  version = "v1"
+  name = "gopkg.in/src-d/go-license-detector.v2"
+  packages = [
+    "licensedb",
+    "licensedb/filer",
+    "licensedb/internal/assets",
+    "licensedb/internal/normalize",
+    "licensedb/internal/processors",
+    "licensedb/internal/wmh"
+  ]
+  revision = "d69b5eb70a3f26cb1261ad01fd2f51934f06075a"
+  version = "v2"
 
 [[projects]]
   name = "gopkg.in/src-d/go-siva.v1"
@@ -556,6 +563,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fa9a4b73554b44512685c414058cb2c5e0806db148ac4b04ccb8c2ec9a7416f4"
+  inputs-digest = "2b3d3abf1d04b5e2d5e198ae9033ce8278e8ad75368251825889ea2f888c5323"
   solver-name = "gps-cdcl"
   solver-version = 1
