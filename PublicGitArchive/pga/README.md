@@ -57,5 +57,5 @@ For instance, this command lists all of the repositories under github.com/src-d,
 and downloads the siva files with `pga get` to the `repositories` directory.
 
 ```bash
-pga list -u github.com/src-d/ -f json | jq -r 'select(.fileCount > 500) | .sivaFilenames[]' | pga get -o repositories
+pga list -u github.com/src-d/ -f json | jq -r 'select(.fileCount > 500) | .sivaFilenames[]' | pga get -i -o repositories
 ```

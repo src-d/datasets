@@ -36,7 +36,11 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 
 		var index pga.Index
 
-		if stat, _ := os.Stdin.Stat(); (stat.Mode() & os.ModeCharDevice) == 0 {
+		stdin, err := cmd.Flags().GetBool("stdin")
+		if err != nil {
+			return err
+		}
+		if stdin {
 			fmt.Fprintln(os.Stderr, "downloading siva files by name from stdin")
 			fmt.Fprintln(os.Stderr, "filter flags will be ignored")
 			index = getIndexFromStdin(os.Stdin)
@@ -162,7 +166,9 @@ func get(dest *destination, name string) error {
 
 func init() {
 	RootCmd.AddCommand(getCmd)
-	addFilterFlags(getCmd.Flags())
-	getCmd.Flags().StringP("output", "o", ".", "path where the siva files should be stored")
-	getCmd.Flags().IntP("jobs", "j", 10, "number of concurrent gets allowed")
+	flags := getCmd.Flags()
+	addFilterFlags(flags)
+	flags.StringP("output", "o", ".", "path where the siva files should be stored")
+	flags.IntP("jobs", "j", 10, "number of concurrent gets allowed")
+	flags.BoolP("stdin", "i", false, "take list of siva files from standard input")
 }
