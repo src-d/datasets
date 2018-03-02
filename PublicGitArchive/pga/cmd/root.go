@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
-
-var cfgFile string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -17,6 +16,16 @@ var RootCmd = &cobra.Command{
 	Long: `pga allows you to list, filterm and download files from the Public Git Archive dataset.
 
 For more info, check http://pga.sourced.tech/`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		v, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+		if v {
+			logrus.SetLevel(logrus.DebugLevel)
+		}
+		return nil
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -29,5 +38,6 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.Flags().BoolP("toggle", "t", false, "help message for toggle")
+	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "log more information")
 }

@@ -4,74 +4,78 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/user"
 	"path/filepath"
-	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
-var (
-	indexURL  = "http://pga.sourced.tech/csv/latest.csv.gz"
-	cacheDir  = ".pga"
-	cachePath = "cache.cvs.gz"
+const (
+	indexURL  = "http://pga.sourced.tech/csv"
+	indexName = "latest.csv.gz"
 )
+
+// copy checks whether a new version of the file in url exists and downloads it
+// to dest. It returns true when the file exists, and an error when it was not possible
+// to update it.
+func copy(dest, source FileSystem, name string) (bool, error) {
+	logrus.Debugf("syncing %s to %s", source.Abs(name), dest.Abs(name))
+	localTime, err := dest.ModTime(name)
+	exists := !os.IsNotExist(err)
+	if err != nil && !os.IsNotExist(err) {
+		return false, fmt.Errorf("could not check mod time in %s: %v", dest.Abs(name), err)
+	}
+
+	remoteTime, err := source.ModTime(name)
+	if err != nil {
+		return exists, fmt.Errorf("could not check mod time in %s: %v", source.Abs(name), err)
+	}
+
+	if !localTime.IsZero() && !remoteTime.IsZero() && remoteTime.Before(localTime) {
+		logrus.Debugf("local copy is up to date")
+		return true, nil
+	}
+	logrus.Debugf("local copy is outdated or non existent")
+
+	wc, err := dest.Create(name)
+	if err != nil {
+		return false, fmt.Errorf("could not create %s: %v", dest.Abs(name), err)
+	}
+
+	rc, err := source.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer rc.Close()
+
+	if _, err = io.Copy(wc, rc); err != nil {
+		return false, fmt.Errorf("could not copy %s to %s: %v", source.Abs(name), dest.Abs(name), err)
+	}
+	if err := wc.Close(); err != nil {
+		return false, fmt.Errorf("could not close %s: %v", dest.Abs(name), err)
+	}
+	return true, nil
+}
 
 func getIndex() (io.ReadCloser, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, err
 	}
-	dest := filepath.Join(usr.HomeDir, cacheDir, cachePath)
+	dest := localFS(filepath.Join(usr.HomeDir, ".pga"))
+	source := urlFS(indexURL)
 
-	var cacheModTime, indexModTime time.Time
-
-	fi, err := os.Stat(dest)
-	if err == nil {
-		cacheModTime = fi.ModTime()
+	ok, err := copy(dest, source, indexName)
+	if !ok {
+		return nil, err
+	} else if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
 
-	req, _ := http.NewRequest(http.MethodHead, indexURL, nil)
-	res, err := http.DefaultClient.Do(req)
-	if err == nil && res.StatusCode == http.StatusOK {
-		indexModTime, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 MST", res.Header.Get("Last-Modified"))
-	}
-
-	if cacheModTime.IsZero() || cacheModTime.Before(indexModTime) {
-		if err := refreshCache(dest); err != nil {
-			return nil, err
-		}
-	}
-
-	f, err := os.Open(dest)
+	f, err := dest.Open(indexName)
 	if err != nil {
 		return nil, err
 	}
 	return gzip.NewReader(f)
-}
-
-func refreshCache(dest string) error {
-	if err := os.MkdirAll(filepath.Dir(dest), 0777); err != nil && err != os.ErrExist {
-		return fmt.Errorf("could not create %s: %v", filepath.Dir(dest), err)
-	}
-
-	f, err := os.Create(dest)
-	if err != nil {
-		return fmt.Errorf("could not create %s: %v", cachePath, err)
-	}
-	fmt.Fprintf(os.Stderr, "INFO: storing index cache in %s\n", dest)
-	res, err := http.Get(indexURL)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("status: %s", res.Status)
-	}
-
-	_, err = io.Copy(f, res.Body)
-	if err != nil {
-		return fmt.Errorf("could not copy file: %v", err)
-	}
-	return nil
 }

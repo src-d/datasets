@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -24,7 +24,7 @@ var getCmd = &cobra.Command{
 
 Alternatively, a list of .siva filenames can be passed through standard input.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dest, err := destinationFromFlags(cmd.Flags())
+		dest, err := FileSystemFromFlags(cmd.Flags())
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,8 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 		for {
 			select {
 			case <-done:
-				withMutex(func() { bar.Set(jobsDone) })
+				withMutex(func() { bar.Set(totalJobs) })
+				bar.Update()
 				return nil
 			case <-tick:
 				withMutex(func() { bar.Set(jobsDone) })
@@ -138,28 +139,13 @@ func getIndexFromStdin(r io.Reader) pga.Index {
 	return stdinIndex{bufio.NewScanner(r)}
 }
 
-func get(dest *destination, name string) error {
-	wc, err := dest.newWriter(name)
-	if err != nil {
-		return fmt.Errorf("could not create a new file in destination %s: %v", dest, err)
-	}
-
-	url := fmt.Sprintf("http://pga.sourced.tech/siva/latest/%s/%s", name[:2], name)
-	res, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("could not get %s: %v", url, err)
-	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("could not get %s: %s", url, res.Status)
-	}
-
-	_, err = io.Copy(wc, res.Body)
-	if err != nil {
-		wc.Close()
-		return fmt.Errorf("could not copy to %s: %v", dest, err)
-	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("could not close %s: %v", dest, err)
+func get(dest FileSystem, name string) error {
+	source := urlFS("http://pga.sourced.tech/")
+	ok, err := copy(dest, source, filepath.Join("siva", "latest", name[:2], name))
+	if !ok {
+		return err
+	} else if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
 	return nil
 }
