@@ -1,0 +1,133 @@
+package cmd
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/colinmarc/hdfs"
+	"github.com/spf13/pflag"
+)
+
+// FileSystem provides an abstraction over various file systems.
+type FileSystem interface {
+	Abs(path string) string
+	Create(path string) (io.WriteCloser, error)
+	Open(path string) (io.ReadCloser, error)
+	ModTime(path string) (time.Time, error)
+	Size(path string) (int64, error)
+}
+
+// FileSystemFromFlags returns the correct file system given a set of flags.
+func FileSystemFromFlags(flags *pflag.FlagSet) (FileSystem, error) {
+	path, err := flags.GetString("output")
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return urlFS(path), nil
+	}
+	if !strings.HasPrefix(path, "hdfs://") {
+		return localFS(path), nil
+	}
+
+	client, err := hdfs.New(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not create HDFS client: %v", err)
+	}
+	return hdfsFS{path, client}, nil
+}
+
+type localFS string
+
+func (fs localFS) Abs(path string) string                  { return filepath.Join(string(fs), path) }
+func (fs localFS) Open(path string) (io.ReadCloser, error) { return os.Open(fs.Abs(path)) }
+func (fs localFS) ModTime(path string) (time.Time, error)  { return modtime(os.Stat(fs.Abs(path))) }
+func (fs localFS) Size(path string) (int64, error)         { return size(os.Stat(fs.Abs(path))) }
+
+func (fs localFS) Create(path string) (io.WriteCloser, error) {
+	path = fs.Abs(path)
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil && !os.IsExist(err) {
+		return nil, fmt.Errorf("could not create %s: %v", dir, err)
+	}
+	return os.Create(path)
+}
+
+type urlFS string
+
+func (fs urlFS) Abs(path string) string { return string(fs) + "/" + path }
+
+func (fs urlFS) Create(path string) (io.WriteCloser, error) {
+	return nil, fmt.Errorf("not implemented for URLs")
+}
+
+func (fs urlFS) Open(path string) (io.ReadCloser, error) {
+	res, err := http.Get(fs.Abs(path))
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(res.Status)
+	}
+	return res.Body, nil
+}
+
+func (fs urlFS) ModTime(path string) (time.Time, error) {
+	h, err := fs.header(path)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Parse("Mon, 02 Jan 2006 15:04:05 MST", h.Get("Last-Modified"))
+}
+
+func (fs urlFS) Size(path string) (int64, error) {
+	h, err := fs.header(path)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseInt(h.Get("Content-Length"), 10, 64)
+}
+
+func (fs urlFS) header(path string) (http.Header, error) {
+	req, _ := http.NewRequest(http.MethodHead, fs.Abs(path), nil)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(res.Status)
+	}
+	return res.Header, nil
+}
+
+type hdfsFS struct {
+	path string
+	c    *hdfs.Client
+}
+
+func (fs hdfsFS) Abs(path string) string                     { return fs.path + "/" + path }
+func (fs hdfsFS) Create(path string) (io.WriteCloser, error) { return fs.c.Create(fs.Abs(path)) }
+func (fs hdfsFS) Open(path string) (io.ReadCloser, error)    { return fs.c.Open(fs.Abs(path)) }
+func (fs hdfsFS) ModTime(path string) (time.Time, error)     { return modtime(fs.c.Stat(fs.Abs(path))) }
+func (fs hdfsFS) Size(path string) (int64, error)            { return size(fs.c.Stat(fs.Abs(path))) }
+
+func modtime(fi os.FileInfo, err error) (time.Time, error) {
+	if err != nil {
+		return time.Time{}, err
+	}
+	return fi.ModTime(), nil
+}
+
+func size(fi os.FileInfo, err error) (int64, error) {
+	if err != nil {
+		return 0, err
+	}
+	return fi.Size(), nil
+}
