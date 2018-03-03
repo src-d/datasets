@@ -8,32 +8,40 @@ This dataset consists of two parts:
 
 ## Tools
 
+* [pga](pga) - explore the dataset, or download its contents easily.
 * [multitool](multitool) - compile the list of repositories and retrieve an existing dataset.
 * [borges-indexer](borges-indexer) - exports a CSV file with metadata from repositories fetched with Borges.
 
-## Download
+## Listing and downloading
 
-To download an existing dataset, execute:
+To see the full list of repositories in the dataset or download it, you will need to install
+[pga](pga).
+Simply install Go and then run `go get github.com/src-d/datasets/PublicGitArchive/pga`.
 
-```
-multitool get-index -o index.csv
-# create siva_file_list.txt from index.csv by running custom query code
-cat siva_file_list.txt | multitool get-dataset -o /path/where/repositories/will/be/stored
-```
+Then to list all of the repositories in the dataset, simply run:
 
-One-liner to fetch all the files:
-
-```
-multitool get-index | grep -oP '[a-z0-9]{40}\.siva' | multitool get-dataset -o /path/where/repositories/will/be/stored
+```bash
+pga list
 ```
 
-`get-dataset` command has `-j/--workers` argument which specifies the number of downloading threads
-to run.
+If you'd rather get a detailed dump of the dataset (not including the file contents)
+you can choose either `pga list -f json` or `pga list -f csv`.
 
-Both `get-index` and `get-dataset` have `-b/--base` argument which specifies the base URL of the datasets.
-source{d}'s address is hardcoded to be the default.
+To download the full dataset, execute:
 
-Example of getting only Java repositories: [examples/java.md](examples/java.md).
+```bash
+pga get
+```
+
+Or if you want to download only those repositories containing at least a line of Java code:
+
+```bash
+pga get -l java
+```
+
+The `pga` command has `-j/--workers` argument which specifies the number of downloading threads to run, it defaults to 10.
+
+For more information, check the [pga documentation](pga), or simply run `pga -h`.
 
 ## Reproduction
 
@@ -43,7 +51,7 @@ The list must be a text file with one URL per line. The paper chooses
 repositories on GitHub with ≥50 stars, which is equivalent to
 the following commands which generate `list.txt`:
 
-```
+```bash
 multitool discover -s stars.txt -r repos.txt.gz
 multitool select -s stars.txt -r repos.txt.gz -m 50 > list.txt
 ```
