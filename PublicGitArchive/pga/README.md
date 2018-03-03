@@ -11,15 +11,15 @@ In the meanwhile you'll need to compile this tool.
 1. fetch the source code: `go get github.com/src-d/datasets/PublicGitArchive/pga`
 1. a new binary is now avilable under `$GOPATH/bin`: `echo "$(go env GOPATH)/bin"`
 1. add that binary to your `PATH` environment variable or move the binary to somewhere easier to find.
-1. verify the installation went well, simply run `gpa -h` and you should see some help.
+1. verify the installation went well, simply run `pga -h` and you should see some help.
 
 ## Utilization
 
-There are two subcommands in `gpa`: `list` and `get`.
+There are two subcommands in `pga`: `list` and `get`.
 
 ### Listing repositories
 
-When you run `gpa list` two things wil happen.
+When you run `pga list` two things wil happen.
 First a copy of the latest index for the Public Git Archive will be downloaded and cached locally.
 Then `pga` will list all the URLs for the repositories in the index.
 
@@ -47,7 +47,7 @@ Simply replace `list` with `get`! You also get a couple of extra flags.
 
 - `--output path` (or `-o path`) determines under what path the siva files should be stored.
   - if the path is a URL with schema `hdfs` HDFS will be used.
-- `--jobs n` (or `-j n`) sets the maximum number of download hapenning concurrently.
+- `--jobs n` (or `-j n`) sets the maximum number of download hapenning concurrently, it defaults to `10`.
 
 #### Downloading siva files given their names
 
