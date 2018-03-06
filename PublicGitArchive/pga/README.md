@@ -59,3 +59,11 @@ and downloads the siva files with `pga get` to the `repositories` directory.
 ```bash
 pga list -u github.com/src-d/ -f json | jq -r 'select(.fileCount > 500) | .sivaFilenames[]' | pga get -i -o repositories
 ```
+
+_Note on partial downloads_
+
+When running `pga get` the tool will check whether the files already
+downloaded match the md5 hash of the files on the server. If that's the case,
+the files will not be downloaded.
+
+This provides a simple way to resume failed downloads. Simply run the tool again.

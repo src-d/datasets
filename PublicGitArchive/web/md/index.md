@@ -2,6 +2,37 @@
 
 On this dataset you can find all the repositories from GitHub with more than 50 stars.
 
+## Downloading the dataset
+
+To see the full list of repositories in the dataset or download it, you will need to install
+[pga](pga).
+Simply install Go and then run `go get github.com/src-d/datasets/PublicGitArchive/pga`.
+
+Then to list all of the repositories in the dataset, simply run:
+
+```bash
+pga list
+```
+
+If you'd rather get a detailed dump of the dataset (not including the file contents)
+you can choose either `pga list -f json` or `pga list -f csv`.
+
+To download the full dataset, execute:
+
+```bash
+pga get
+```
+
+Or if you want to download only those repositories containing at least a line of Java code:
+
+```bash
+pga get -l java
+```
+
+The `pga` command has `-j/--workers` argument which specifies the number of downloading threads to run, it defaults to 10.
+
+For more information, check the [pga documentation](pga), or simply run `pga -h`.
+
 ## Links
 
 - ### [CSV file](LINK TO CSV FILE HERE)
