@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ func main() {
 	logfile := flag.String("logfile", "", "write logs to file")
 	limit := flag.Uint64("limit", 0, "max number of repositories to process")
 	offset := flag.Uint64("offset", 0, "skip initial n repositories")
+	workers := flag.Int("workers", runtime.NumCPU(), "number of workers to use")
 	reposFile := flag.String("repos-file", "", "path to a file with a repository per line, only those will be processed")
 	flag.Parse()
 
@@ -24,6 +26,10 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
+	}
+
+	if *workers < 1 {
+		logrus.Fatal("cannot use less than one worker, stopping")
 	}
 
 	if *logfile != "" {
@@ -60,6 +66,7 @@ func main() {
 		core.ModelRepositoryStore(),
 		core.RootedTransactioner(),
 		*output,
+		*workers,
 		*limit,
 		*offset,
 		repos,

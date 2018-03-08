@@ -17,6 +17,7 @@ func Index(
 	store *model.RepositoryStore,
 	txer repository.RootedTransactioner,
 	outputFile string,
+	workers int,
 	limit uint64,
 	offset uint64,
 	list []string,
@@ -41,7 +42,7 @@ func Index(
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
-	repos := processRepos(txer, rs)
+	repos := processRepos(workers, txer, rs)
 	var processed int
 	for {
 		select {
@@ -108,7 +109,7 @@ func getResultSet(
 		query = query.Limit(limit)
 	}
 
-	if limit > 0 {
+	if offset > 0 {
 		query = query.Offset(offset)
 	}
 
