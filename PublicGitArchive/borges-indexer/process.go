@@ -124,6 +124,7 @@ type lineCounts struct {
 }
 
 func processRepos(
+	workers int,
 	txer repository.RootedTransactioner,
 	rs *model.RepositoryResultSet,
 ) <-chan *repositoryData {
@@ -133,7 +134,7 @@ func processRepos(
 		logrus.WithField("elapsed", time.Since(start)).Debug("finished processing repos")
 	}()
 
-	ws := newWorkerSet(runtime.NumCPU())
+	ws := newWorkerSet(workers)
 	ch := make(chan *repositoryData)
 	locker := newLocker()
 
@@ -380,10 +381,10 @@ func (p *processor) data() (*repositoryData, error) {
 		return nil, fmt.Errorf("unable to get head commits: %s", err)
 	}
 
-    loader, err := filer.FromDirectory(path)
-    if err != nil {
-        return nil, fmt.Errorf("unable to read %s: %s", path, err)
-    }
+	loader, err := filer.FromDirectory(path)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read %s: %s", path, err)
+	}
 	data.License, err = licensedb.Detect(loader)
 	if err != nil {
 		data.License = make(map[string]float32)
