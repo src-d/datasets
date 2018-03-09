@@ -46,7 +46,13 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 			if err != nil {
 				return fmt.Errorf("could not read from standard input: %v", err)
 			}
-			filenames = strings.Split(string(b), "\n")
+			for _, filename := range strings.Split(string(b), "\n") {
+				filename = strings.TrimSpace(filename)
+				if filename == "" {
+					continue
+				}
+				filenames = append(filenames, filename)
+			}
 		} else {
 			f, err := getIndex()
 			if err != nil {
