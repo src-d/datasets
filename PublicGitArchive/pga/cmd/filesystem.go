@@ -37,7 +37,7 @@ func FileSystemFromFlags(flags *pflag.FlagSet) (FileSystem, error) {
 		return localFS(path), nil
 	}
 
-	client, err := hdfs.New(path)
+	client, err := hdfs.New(strings.TrimPrefix(path, "hdfs://"))
 	if err != nil {
 		return nil, fmt.Errorf("could not create HDFS client: %v", err)
 	}
