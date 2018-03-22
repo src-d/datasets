@@ -33,22 +33,21 @@ Total number of **files** : 54.5 million
 Total number of **lines** : 15,941 million  
 Total number of **bytes** : 710 GB  
 
-## 5. Dataset Analysis given the latest CSV file : `size_analysis_siva_files.ipynb`
+## 5. Dataset Analysis given the latest CSV file
 
 * Repositories that count the most siva files, [related issue](https://github.com/src-d/borges/issues/222)
 
 |   | Number of siva files | URL | Total size | min/max size | Average size |  
 |---|----------------------|-----|------------|--------------|--------------|
-| 1. | 6,613 | github.com/google/angle |  ~     |  ~  |  ~  |
-| 2. | 5,222 | github.com/android/platform_bionic |  ~     |  ~  |  ~  |
+| 1. | 6,613 | github.com/google/angle | 98 MB |  2 KB / 38 MB |  15 KB  |
+| 2. | 5,222 | github.com/android/platform_bionic | 85 MB | 2 KB / 48 MB | 16 KB |
 | 3. | 4,623 | github.com/android/platform_build  | 107 MB | 2 KB / 76 MB | 23 KB |  
-| 7. | 2,467 | github.com/upspin/upspin           | 75 MB  | 2 KB / 59 MB | 30 KB |  
 
 **Conclusion** : Those repos have thousands of references with root commits different than the one in master. However, because they remain tiny, they don't pollute the dataset and we don't filter them.
 
-* And the largest siva files belong to ...  
+* And the biggest siva files belong to ...  
 
-See `size_analysis_siva_files.ipynb` for the list of the 10 largest siva files in the dataset.
+List of the 10 biggest siva files in the dataset.
 
 |   | Size of siva files | Repos |
 |---|----------------------|-----|
@@ -59,8 +58,7 @@ See `size_analysis_siva_files.ipynb` for the list of the 10 largest siva files i
 | 5. | 4.9 GB | <ul><li>github.com/arduino-org/Arduino</li><li>github.com/arduino/Arduino</li><li>github.com/adafruit/ESP8266-Arduino</li></ul>   | 
 | 6. | 4.9 GB | github.com/sixteencolors/sixteencolors-archive  | 
 | 7. | 4.6 GB | <ul><li>github.com/MicrosoftDocs/azure-docs</li><li>github.com/Azure/azure-content</li></ul> | 
-| 8. | 4.3 GB | ~         | 
-| 9. | 4.1 GB | <ul><li>github.com/adobe/chromium</li><li>github.com/mirrors/chromium</li><li>github.com/ChromiumWebApps/chromium</li></ul> | 
-| 10.| 3.9 GB | github.com/dotabuff/d2vpk  | 
+| 8. | 4.1 GB | <ul><li>github.com/adobe/chromium</li><li>github.com/mirrors/chromium</li><li>github.com/ChromiumWebApps/chromium</li></ul> | 
+| 9.| 3.9 GB | github.com/dotabuff/d2vpk  | 
 
 Some of the URLs are already deleted.
