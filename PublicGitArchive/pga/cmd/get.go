@@ -46,7 +46,11 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 			if err != nil {
 				return fmt.Errorf("could not read from standard input: %v", err)
 			}
-			filenames = strings.Split(string(b), "\n")
+			// to avoid empty strings
+			splitFn := func(c rune) bool {
+				return c == '\n'
+			}
+			filenames = strings.FieldsFunc(string(b), splitFn)
 		} else {
 			f, err := getIndex()
 			if err != nil {
