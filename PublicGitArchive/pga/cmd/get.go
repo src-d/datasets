@@ -94,6 +94,9 @@ func downloadFilenames(dest, source FileSystem, filenames []string, maxDownloads
 
 	done := make(chan bool)
 	for _, filename := range filenames {
+		if len(filename) == 0 {
+			continue
+		}
 		filename := filepath.Join("siva", "latest", filename[:2], filename)
 		go func() {
 			<-tokens
