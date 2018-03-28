@@ -53,11 +53,11 @@ Simply replace `list` with `get`! You also get a couple of extra flags.
 
 Simply pass a list of siva filenames through standad input to `pga get`.
 
-For instance, this command lists all of the repositories under github.com/src-d, filter out those with less than 500 files,
+For instance, this command lists all of the repositories under github.com/src-d, filter out those with less than 50 files,
 and downloads the siva files with `pga get` to the `repositories` directory.
 
 ```bash
-pga list -u github.com/src-d/ -f json | jq -r 'select(.fileCount > 500) | .sivaFilenames[]' | pga get -i -o repositories
+pga list -u github.com/src-d/ -f json | jq -r 'select(.fileCount > 50) | .sivaFilenames[]' | pga get -i -o repositories
 ```
 
 _Note on partial downloads_
