@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/colinmarc/hdfs"
@@ -30,18 +30,25 @@ func FileSystemFromFlags(flags *pflag.FlagSet) (FileSystem, error) {
 		return nil, err
 	}
 
-	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
-		return urlFS(path), nil
-	}
-	if !strings.HasPrefix(path, "hdfs://") {
-		return localFS(path), nil
+	u, err := url.Parse(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse output location: %v", err)
 	}
 
-	client, err := hdfs.New(strings.TrimPrefix(path, "hdfs://"))
-	if err != nil {
-		return nil, fmt.Errorf("could not create HDFS client: %v", err)
+	switch u.Scheme {
+	case "http", "https":
+		return urlFS(path), nil
+	case "hdfs":
+		client, err := hdfs.New(u.Host)
+		if err != nil {
+			return nil, fmt.Errorf("could not create HDFS client: %v", err)
+		}
+		return hdfsFS{u.Path, client}, nil
+	case "":
+		return localFS(path), nil
+	default:
+		return nil, fmt.Errorf("scheme not supported in output location %s", path)
 	}
-	return hdfsFS{path, client}, nil
 }
 
 type localFS string
@@ -112,11 +119,20 @@ type hdfsFS struct {
 	c    *hdfs.Client
 }
 
-func (fs hdfsFS) Abs(path string) string                     { return fs.path + "/" + path }
-func (fs hdfsFS) Create(path string) (io.WriteCloser, error) { return fs.c.Create(fs.Abs(path)) }
-func (fs hdfsFS) Open(path string) (io.ReadCloser, error)    { return fs.c.Open(fs.Abs(path)) }
-func (fs hdfsFS) ModTime(path string) (time.Time, error)     { return modtime(fs.c.Stat(fs.Abs(path))) }
-func (fs hdfsFS) Size(path string) (int64, error)            { return size(fs.c.Stat(fs.Abs(path))) }
+func (fs hdfsFS) Abs(path string) string { return fs.path + "/" + path }
+
+func (fs hdfsFS) Create(path string) (io.WriteCloser, error) {
+	path = fs.Abs(path)
+	dir := filepath.Dir(path)
+	if err := fs.c.MkdirAll(dir, os.ModePerm); err != nil && !os.IsExist(err) {
+		return nil, fmt.Errorf("could not create %s: %v", dir, err)
+	}
+	return fs.c.Create(path)
+}
+
+func (fs hdfsFS) Open(path string) (io.ReadCloser, error) { return fs.c.Open(fs.Abs(path)) }
+func (fs hdfsFS) ModTime(path string) (time.Time, error)  { return modtime(fs.c.Stat(fs.Abs(path))) }
+func (fs hdfsFS) Size(path string) (int64, error)         { return size(fs.c.Stat(fs.Abs(path))) }
 
 func modtime(fi os.FileInfo, err error) (time.Time, error) {
 	if err != nil {
