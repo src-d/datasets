@@ -5,8 +5,8 @@ language: go
 
 go_import_path: github.com/src-d/datasets
 go:
-  - 1.8
-  - 1.9
+  - 1.9.x
+  - 1.10.x
 
 before_install:
   - go get -v github.com/golang/lint/golint
