@@ -104,6 +104,7 @@ func HTML(htmlSource []byte) []byte {
 	result := &bytes.Buffer{}
 	doc := html.NewTokenizer(bytes.NewReader(htmlSource))
 	skip := false
+	var href []byte
 	for token := doc.Next(); token != html.ErrorToken; token = doc.Next() {
 		tagName, _ := doc.TagName()
 		if skipHTMLRe.Match(tagName) {
@@ -116,6 +117,15 @@ func HTML(htmlSource []byte) []byte {
 			continue
 		}
 		text := doc.Text()
+		if href != nil && doc.Token().Type == html.TextToken {
+			myhref := href
+			href = nil
+			if bytes.Equal(myhref, text) {
+				continue
+			} else {
+				result.WriteRune(' ')
+			}
+		}
 		text = htmlEntityRe.ReplaceAllFunc(text, parseHTMLEntity)
 		text = bytes.Replace(text, []byte("\u00a0"), []byte(" "), -1)
 		result.Write(text)
@@ -128,12 +138,12 @@ func HTML(htmlSource []byte) []byte {
 			for key, val, _ := doc.TagAttr(); key != nil; key, val, _ = doc.TagAttr() {
 				if string(key) == "href" {
 					result.Write(val)
+					href = val
 					break
 				}
 			}
 		} else if htmlHeaderRe.Match(tagName) && doc.Token().Type == html.EndTagToken {
-			last := result.Bytes()[result.Len()-1]
-			if !marksRe.MatchString(string(last)) {
+			if result.Len() > 0 && !marksRe.MatchString(string(result.Bytes()[result.Len()-1])) {
 				result.WriteRune('.')
 			}
 		}

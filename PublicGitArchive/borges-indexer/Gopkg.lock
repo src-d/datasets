@@ -452,6 +452,7 @@
     "helper/chroot",
     "helper/mount",
     "helper/polyfill",
+    "memfs",
     "osfs",
     "util"
   ]
@@ -530,7 +531,7 @@
     "licensedb/internal/processors",
     "licensedb/internal/wmh"
   ]
-  revision = "d69b5eb70a3f26cb1261ad01fd2f51934f06075a"
+  revision = "259bdcf6543d3e11ee2595bdfaf3fe16a1e84c26"
   version = "v2"
 
 [[projects]]
@@ -563,6 +564,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2b3d3abf1d04b5e2d5e198ae9033ce8278e8ad75368251825889ea2f888c5323"
+  inputs-digest = "7e2b63b1c0438e688696c9777615b7ff0923ec537d13e81008d78f0438473e9e"
   solver-name = "gps-cdcl"
   solver-version = 1
