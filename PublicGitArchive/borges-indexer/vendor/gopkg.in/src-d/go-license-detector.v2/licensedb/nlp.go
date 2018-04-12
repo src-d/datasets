@@ -16,6 +16,8 @@ var (
 	licenseNamePartRe   = regexp.MustCompile("([a-z]+)|([0-9]+)")
 	digitsRe            = regexp.MustCompile("[0-9]+")
 	disabledNamePartsRe = regexp.MustCompile("clause|or|only|deprecated|later")
+
+	tagger = tag.NewPerceptronTagger()
 )
 
 // investigateReadmeFile uses NER to match license name mentions.
@@ -61,7 +63,6 @@ func investigateReadmeFile(
 	}
 	suspectedText := text[beginIndex:endIndex]
 	suspectedWords := tokenize.TextToWords(suspectedText)
-	tagger := tag.NewPerceptronTagger()
 	for _, entity := range chunk.Chunk(tagger.Tag(suspectedWords), chunk.TreebankNamedEntities) {
 		if garbageReadmeRe.MatchString(entity) {
 			continue

@@ -113,7 +113,7 @@ func loadLicenses() *database {
 		key := header.Name[2 : len(header.Name)-4]
 		text := make([]byte, header.Size)
 		readSize, readErr := archive.Read(text)
-		if readErr != nil {
+		if readErr != nil && readErr != io.EOF {
 			log.Fatalf("failed to load licenses.tar from the assets: %s: %v", header.Name, readErr)
 		}
 		if int64(readSize) != header.Size {
@@ -141,7 +141,8 @@ func loadLicenses() *database {
 		}
 	}
 	if db.debug {
-		println("Minimum license length:", db.minLicenseLength)
+		log.Println("Minimum license length:", db.minLicenseLength)
+		log.Println("Number of supported licenses:", len(db.licenseTexts))
 	}
 	firstLineWriter.Truncate(firstLineWriter.Len() - 1)
 	firstLineWriter.WriteString("))")
@@ -170,7 +171,7 @@ func loadLicenses() *database {
 	db.lsh = minhashlsh.NewMinhashLSH64(numHashes, similarityThreshold)
 	if db.debug {
 		k, l := db.lsh.Params()
-		println("LSH:", k, l)
+		log.Println("LSH:", k, l)
 	}
 	db.hasher = wmh.NewWeightedMinHasher(len(uniqueTokens), numHashes, 7)
 	db.nameSubstrings = map[string][]substring{}

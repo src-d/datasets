@@ -12,7 +12,13 @@ import (
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
+	sivafs "gopkg.in/src-d/go-billy-siva.v4"
+	"gopkg.in/src-d/go-billy.v4/osfs"
+	"gopkg.in/src-d/go-billy.v4/memfs"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
 // File represents a file in the virtual file system: every node is either a regular file
@@ -90,13 +96,27 @@ func (filer *localFiler) ReadDir(path string) ([]File, error) {
 
 func (filer *localFiler) Close() {}
 
+type gitFiler struct {
+	root *object.Tree
+}
+
 // FromGitURL returns a Filer that allows accessing all the files in a Git repository given its URL.
 func FromGitURL(url string) (Filer, error) {
 	repo, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{URL: url})
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not clone repo from %s", url)
 	}
-	head, err := repo.Head()
+	return fromGit(repo, "")
+}
+
+func fromGit(repo *git.Repository, headRef plumbing.ReferenceName) (Filer, error) {
+	var head *plumbing.Reference
+	var err error
+	if headRef == "" {
+		head, err = repo.Head()
+	} else {
+		head, err = repo.Reference(headRef, true)
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "could not fetch HEAD from repo")
 	}
@@ -109,10 +129,6 @@ func FromGitURL(url string) (Filer, error) {
 		return nil, errors.Wrap(err, "could not fetch root for HEAD commit")
 	}
 	return &gitFiler{root: tree}, nil
-}
-
-type gitFiler struct {
-	root *object.Tree
 }
 
 func (filer gitFiler) ReadFile(path string) ([]byte, error) {
@@ -178,6 +194,39 @@ func (filer *gitFiler) ReadDir(path string) ([]File, error) {
 
 func (filer *gitFiler) Close() {
 	filer.root = nil
+}
+
+// FromSiva returns a Filer that allows accessing all the files in a Git repository contained in a Siva file.
+// See https://github.com/src-d/go-siva and https://github.com/src-d/go-billy-siva
+func FromSiva(path string) (Filer, error) {
+	localFs := osfs.New(filepath.Dir(path))
+	tmpFs := memfs.New()
+	basePath := filepath.Base(path)
+	fs, err := sivafs.NewFilesystem(localFs, basePath, tmpFs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to create a Siva filesystem from %s", path)
+	}
+	sivaStorage, err := filesystem.NewStorage(fs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to create a new storage backend for Siva file %s", path)
+	}
+	repo, err := git.Open(sivaStorage, tmpFs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to open the Git repository from Siva file %s", path)
+	}
+	refs, err := repo.References()
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to list Git references from Siva file %s", path)
+	}
+	var head plumbing.ReferenceName
+	refs.ForEach(func(ref *plumbing.Reference) error {
+		if strings.HasPrefix(ref.Name().String(), "refs/heads/HEAD/") {
+			head = ref.Name()
+			return storer.ErrStop
+		}
+		return nil
+	})
+	return fromGit(repo, head)
 }
 
 type zipNode struct {

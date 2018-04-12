@@ -76,7 +76,7 @@ var (
 
 	// 9.1.1 "©", "(c)", or "Copyright" should be considered equivalent and interchangeable.
 	copyrightRe = regexp.MustCompile("©|\\(c\\)|copyright")
-	trademarkRe = regexp.MustCompile("™|\\(tm\\)|trademark")
+	trademarkRe = regexp.MustCompile("™|\\(tm\\)|trademark(s?)")
 
 	// extra cleanup
 	brokenLinkRe    = regexp.MustCompile("http s ://")
@@ -178,6 +178,7 @@ func Relax(text string) string {
 	text = buffer.String()
 	text = nonAlphaNumRe.ReplaceAllString(text, "")
 	text = leadingWhitespaceRe.ReplaceAllString(text, "")
+	text = strings.Replace(text, "  ", " ", -1)
 	return text
 }
 
