@@ -10,21 +10,25 @@ environment:
 build_script:
   - go get -v github.com/src-d/datasets/PublicGitArchive/multitool/...
   - go get -v github.com/src-d/datasets/PublicGitArchive/borges-indexer/...
+  - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
   - 7z a c:\gopath\src\github.com\src-d\datasets\multitool.windows_amd64.zip %GOPATH%\bin\multitool.exe
   - 7z a c:\gopath\src\github.com\src-d\datasets\borges-indexer.windows_amd64.zip %GOPATH%\bin\borges-indexer.exe %GOPATH%\bin\set-forks.exe
+  - 7z a c:\gopath\src\github.com\src-d\datasets\pga.windows_amd64.zip %GOPATH%\bin\pga.exe
 
 artifacts:
   - name: multitool.windows_amd64.zip
     path: multitool.windows_amd64.zip
   - name: borges-indexer.windows_amd64.zip
     path: borges-indexer.windows_amd64.zip
+  - name: pga.windows_amd64.zip
+    path: pga.windows_amd64.zip
 
 deploy:
   release: $(APPVEYOR_REPO_TAG_NAME)
   provider: GitHub
   auth_token:
     secure: 78zsH4q19DqcpdkwnYHQoe0BakBfv+LGu1W7mXuaBC9mS87+EuAj3+yTzJv4NEfI
-  artifact: multitool.windows_amd64.zip,borges-indexer.windows_amd64.zip
+  artifact: multitool.windows_amd64.zip,borges-indexer.windows_amd64.zip,pga.windows_amd64.zip
   on:
     branch: master
     appveyor_repo_tag: true
