@@ -28,9 +28,11 @@ jobs:
       after_success:
         - gzip -S .darwin_amd64.gz $GOPATH/bin/multitool
         - tar -czf $GOPATH/bin/borges-indexer.darwin_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
+        - gzip -S .darwin_amd64.gz $GOPATH/bin/pga
       install:
         - go get -v github.com/src-d/datasets/PublicGitArchive/multitool/...
         - go get -v github.com/src-d/datasets/PublicGitArchive/borges-indexer/...
+        - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
       script: skip
       deploy:
         provider: releases
@@ -39,6 +41,7 @@ jobs:
         file:
           - "$GOPATH/bin/multitool.darwin_amd64.gz"
           - "$GOPATH/bin/borges-indexer.darwin_amd64.tar.gz"
+          - "$GOPATH/bin/pga.darwin_amd64.gz"
         skip_cleanup: true
         on:
           tags: true
@@ -48,10 +51,12 @@ jobs:
       install:
         - go get -v github.com/src-d/datasets/PublicGitArchive/multitool/...
         - go get -v github.com/src-d/datasets/PublicGitArchive/borges-indexer/...
+        - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
       script: skip
       after_success:
         - gzip -S .linux_amd64.gz $GOPATH/bin/multitool
         - tar -czf $GOPATH/bin/borges-indexer.linux_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
+        - gzip -S .linux_amd64.gz $GOPATH/bin/pga
       deploy:
         provider: releases
         api_key:
@@ -59,6 +64,7 @@ jobs:
         file:
           - "$GOPATH/bin/multitool.linux_amd64.gz"
           - "$GOPATH/bin/borges-indexer.linux_amd64.tar.gz"
+          - "$GOPATH/bin/pga.linux_amd64.gz"
         skip_cleanup: true
         on:
           tags: true
