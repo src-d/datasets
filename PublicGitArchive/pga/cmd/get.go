@@ -99,8 +99,7 @@ func downloadFilenames(dest, source FileSystem, filenames []string, maxDownloads
 			<-tokens
 			defer func() { tokens <- true }()
 
-			_, err := copy(dest, source, filename)
-			if err != nil {
+			if err := updateCache(dest, source, filename); err != nil {
 				fmt.Fprintf(os.Stderr, "could not get %s: %v\n", filename, err)
 			}
 			done <- true
