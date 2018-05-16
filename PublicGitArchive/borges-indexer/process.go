@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -226,7 +227,7 @@ func (p *processor) process() (*repositoryData, error) {
 
 	mut := p.locker.lock(head.String())
 	mut.Lock()
-	tx, err := p.txer.Begin(plumbing.NewHash(head.String()))
+	tx, err := p.txer.Begin(context.TODO(), plumbing.NewHash(head.String()))
 	if err != nil {
 		mut.Unlock()
 		return nil, fmt.Errorf("can't start transaction: %s", err)
@@ -254,7 +255,7 @@ func (p *processor) process() (*repositoryData, error) {
 		mut.Lock()
 		err := func() error {
 			defer mut.Unlock()
-			tx, err := p.txer.Begin(plumbing.NewHash(init.String()))
+			tx, err := p.txer.Begin(context.TODO(), plumbing.NewHash(init.String()))
 			if err != nil {
 				return fmt.Errorf("can't get root transaction: %s", err)
 			}

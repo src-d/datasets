@@ -1,11 +1,11 @@
 #!/bin/sh
 # TODO allow to test with more than one hadoop version if needed
-HADOOP_VERSION=${HADOOP_VERSION-"2.7.4"}
+HADOOP_VERSION=${HADOOP_VERSION-"2.7.6"}
 
 HADOOP_HOME="/tmp/hadoop-$HADOOP_VERSION"
 NN_PORT="9000"
 HADOOP_NAMENODE="localhost:$NN_PORT"
-HADOOP_URL="http://apache.mirrors.tds.net/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz"
+HADOOP_URL="http://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz"
 
 if [ ! -d "$HADOOP_HOME" ]; then
   mkdir -p $HADOOP_HOME

@@ -55,6 +55,10 @@ const (
 	// fetched. It could also mean that there was an error and the repository
 	// never finished fetching.
 	Fetching FetchStatus = "fetching"
+	// AuthRequired means the remote repository returns an authentication required
+	// error when you try to fetch it. It doesn't mean that repository exists,
+	// but if so, it cannot be processed without appropiate credentials.
+	AuthRequired FetchStatus = "auth_req"
 )
 
 // Language represents a language name.
