@@ -91,7 +91,8 @@ func getResultSet(
 	list []string,
 ) (*model.RepositoryResultSet, int64, error) {
 	query := model.NewRepositoryQuery().
-		FindByStatus(model.Fetched)
+		FindByStatus(model.Fetched).
+		WithReferences(nil)
 
 	var repos = make([]interface{}, len(list))
 	for i, r := range list {
