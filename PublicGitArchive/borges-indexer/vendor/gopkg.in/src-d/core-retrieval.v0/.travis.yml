@@ -1,7 +1,8 @@
 language: go
 
 go:
-  - 1.9
+  - 1.9.x
+  - 1.10.x
   - tip
 
 go_import_path: gopkg.in/src-d/core-retrieval.v0
@@ -10,14 +11,14 @@ matrix:
   fast_finish: true
   allow_failures:
     - go: tip
-    - env: HADOOP_VERSION=2.8.1
+    - env: HADOOP_VERSION=2.8.3
 
 env:
   global:
     - DBUSER=postgres DBPASS=
   matrix:
-    - HADOOP_VERSION=2.7.4
-    - HADOOP_VERSION=2.8.1
+    - HADOOP_VERSION=2.7.6
+    - HADOOP_VERSION=2.8.3
 
 services:
   - docker

@@ -20,13 +20,14 @@ const transactionerLocalDir = "transactioner"
 
 type containerConfig struct {
 	configurable.BasicConfiguration
-	TempDir             string `default:"/tmp/sourced" split_words:"true"`
-	CleanTempDir        bool   `default:"false" split_words:"true"`
-	Broker              string `default:"amqp://localhost:5672"`
-	RootRepositoriesDir string `default:"/tmp/root-repositories" split_words:"true"`
-	Locking             string `default:"local:"`
-	HDFS                string `default:""`
-	BucketSize          int    `default:0`
+	TempDir                 string `default:"/tmp/sourced" split_words:"true"`
+	CleanTempDir            bool   `default:"false" split_words:"true"`
+	Broker                  string `default:"amqp://localhost:5672"`
+	RootRepositoriesDir     string `default:"/tmp/root-repositories" split_words:"true"`
+	RootRepositoriesTempDir string `default:"/tmp/root-repositories-dot-copy" split_words:"true"`
+	Locking                 string `default:"local:"`
+	HDFS                    string `default:""`
+	BucketSize              int    `default:0`
 }
 
 var config = &containerConfig{}
@@ -139,19 +140,24 @@ func RootedTransactioner() repository.RootedTransactioner {
 			panic(err)
 		}
 
-		var copier repository.Copier
+		var remote repository.Fs
 		if config.HDFS == "" {
-			copier = repository.NewLocalCopier(
-				osfs.New(config.RootRepositoriesDir), config.BucketSize)
+			remote = repository.NewLocalFs(osfs.New(config.RootRepositoriesDir))
 		} else {
-			copier = repository.NewHDFSCopier(
-				config.HDFS, config.RootRepositoriesDir, config.TempDir, config.BucketSize)
+			remote = repository.NewHDFSFs(
+				config.HDFS,
+				config.RootRepositoriesDir,
+				config.RootRepositoriesTempDir,
+			)
 		}
 
 		container.RootedTransactioner =
 			repository.NewSivaRootedTransactioner(
-				copier,
-				tmpFs,
+				repository.NewCopier(
+					tmpFs,
+					remote,
+					config.BucketSize,
+				),
 			)
 	}
 

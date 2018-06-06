@@ -2,6 +2,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -18,7 +19,7 @@ import (
 
 // RootedTransactioner can initiate transactions on rooted repositories.
 type RootedTransactioner interface {
-	Begin(h plumbing.Hash) (Tx, error)
+	Begin(context.Context, plumbing.Hash) (Tx, error)
 }
 
 // Tx is a transaction on a repository. Any change performed in the given
@@ -29,14 +30,13 @@ type Tx interface {
 	// every call until Commit or Rollback is performed.
 	Storer() storage.Storer
 	// Commit commits all changes to the repository.
-	Commit() error
+	Commit(context.Context) error
 	// Rollback undoes any changes and cleans up.
 	Rollback() error
 }
 
-type fsSrv struct {
-	copier Copier
-	local  billy.Filesystem
+type sivaRootedTransactioner struct {
+	copier *Copier
 }
 
 // NewSivaRootedTransactioner returns a RootedTransactioner for repositories
@@ -47,27 +47,30 @@ type fsSrv struct {
 // since it relies on copying between arbitrary filesystems. If a
 // Commit operation fails, the state of the first filesystem is unknown and can
 // be invalid.
-func NewSivaRootedTransactioner(copier Copier, local billy.Filesystem) RootedTransactioner {
-	return &fsSrv{copier, local}
+func NewSivaRootedTransactioner(copier *Copier) RootedTransactioner {
+	return &sivaRootedTransactioner{copier}
 }
 
-func (s *fsSrv) Begin(h plumbing.Hash) (Tx, error) {
+func (s *sivaRootedTransactioner) Begin(ctx context.Context, h plumbing.Hash) (Tx, error) {
+	local := s.copier.Local()
 	origPath := fmt.Sprintf("%s.siva", h)
-	localPath := s.local.Join(
-		fmt.Sprintf("%s_%s", h.String(), strconv.FormatInt(time.Now().UnixNano(), 10)))
+	localPath := local.Join(fmt.Sprintf(
+		"%s_%s", h.String(),
+		strconv.FormatInt(time.Now().UnixNano(), 10),
+	))
 	localSivaPath := filepath.Join(localPath, "siva")
 	localTmpPath := filepath.Join(localPath, "tmp")
 
-	if err := s.copier.CopyFromRemote(origPath, localSivaPath, s.local); err != nil {
+	if err := s.copier.CopyFromRemote(ctx, origPath, localSivaPath); err != nil {
 		return nil, err
 	}
 
-	tmpFs, err := s.local.Chroot(localTmpPath)
+	tmpFs, err := local.Chroot(localTmpPath)
 	if err != nil {
 		return nil, err
 	}
 
-	fs, err := sivafs.NewFilesystem(s.local, localSivaPath, tmpFs)
+	fs, err := sivafs.NewFilesystem(local, localSivaPath, tmpFs)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +92,7 @@ func (s *fsSrv) Begin(h plumbing.Hash) (Tx, error) {
 
 	return &fsTx{
 		copier:   s.copier,
-		local:    s.local,
+		local:    local,
 		sivafs:   fs,
 		origPath: origPath,
 		tmpPath:  localSivaPath,
@@ -98,7 +101,7 @@ func (s *fsSrv) Begin(h plumbing.Hash) (Tx, error) {
 }
 
 type fsTx struct {
-	copier            Copier
+	copier            *Copier
 	local             billy.Filesystem
 	sivafs            sivafs.SivaSync
 	tmpPath, origPath string
@@ -109,12 +112,12 @@ func (tx *fsTx) Storer() storage.Storer {
 	return tx.s
 }
 
-func (tx *fsTx) Commit() error {
+func (tx *fsTx) Commit(ctx context.Context) error {
 	if err := tx.sivafs.Sync(); err != nil {
 		return err
 	}
 
-	if err := tx.copier.CopyToRemote(tx.tmpPath, tx.origPath, tx.local); err != nil {
+	if err := tx.copier.CopyToRemote(ctx, tx.tmpPath, tx.origPath); err != nil {
 		_ = tx.cleanUp()
 		return err
 	}
