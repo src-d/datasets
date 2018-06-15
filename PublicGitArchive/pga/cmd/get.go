@@ -1,13 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -21,6 +25,8 @@ var getCmd = &cobra.Command{
 
 Alternatively, a list of .siva filenames can be passed through standard input.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := setupContext()
+
 		source := urlFS("http://pga.sourced.tech/")
 
 		dest, err := FileSystemFromFlags(cmd.Flags())
@@ -54,7 +60,7 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 				filenames = append(filenames, filename)
 			}
 		} else {
-			f, err := getIndex()
+			f, err := getIndex(ctx)
 			if err != nil {
 				return fmt.Errorf("could not open index file: %v", err)
 			}
@@ -82,41 +88,68 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 			}
 		}
 
-		return downloadFilenames(dest, source, filenames, maxDownloads)
+		return downloadFilenames(ctx, dest, source, filenames, maxDownloads)
 	},
 }
 
-func downloadFilenames(dest, source FileSystem, filenames []string,
-	maxDownloads int) error {
+func downloadFilenames(ctx context.Context, dest, source FileSystem,
+	filenames []string, maxDownloads int) error {
 
 	tokens := make(chan bool, maxDownloads)
 	for i := 0; i < maxDownloads; i++ {
 		tokens <- true
 	}
 
-	done := make(chan bool)
+	done := make(chan error)
 	for _, filename := range filenames {
 		filename := filepath.Join("siva", "latest", filename[:2], filename)
 		go func() {
-			<-tokens
+			select {
+			case <-tokens:
+			case <-ctx.Done():
+				done <- fmt.Errorf("canceled")
+				return
+			}
 			defer func() { tokens <- true }()
 
-			if err := updateCache(dest, source, filename); err != nil {
+			err := updateCache(ctx, dest, source, filename)
+			if err != nil {
 				fmt.Fprintf(os.Stderr, "could not get %s: %v\n", filename, err)
 			}
-			done <- true
+
+			done <- err
 		}()
 	}
 
 	bar := pb.StartNew(len(filenames))
-	for i := 1; ; i++ {
-		<-done
-		bar.Set(i)
-		bar.Update()
-		if i == len(filenames) {
-			return nil
+	var finalErr error
+	for i := 1; i <= len(filenames); i++ {
+		if err := <-done; err != nil {
+			finalErr = fmt.Errorf("there where failed downloads")
+		}
+
+		if finalErr == nil {
+			bar.Set(i)
+			bar.Update()
 		}
 	}
+
+	return finalErr
+}
+
+func setupContext() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	var term = make(chan os.Signal)
+	go func() {
+		select {
+		case <-term:
+			logrus.Warningf("signal received, stopping...")
+			cancel()
+		}
+	}()
+	signal.Notify(term, syscall.SIGTERM, os.Interrupt)
+
+	return ctx
 }
 
 func init() {
