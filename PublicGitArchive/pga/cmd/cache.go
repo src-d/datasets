@@ -25,24 +25,46 @@ func updateCache(dest, source FileSystem, name string) error {
 	}
 
 	logrus.Debugf("local copy is outdated or non existent")
-	wc, err := dest.Create(name)
-	if err != nil {
-		return fmt.Errorf("could not create %s: %v", dest.Abs(name), err)
+	tmpName := name + ".tmp"
+	if err := copy(source, dest, name, tmpName); err != nil {
+		logrus.Warningf("copy from % to %s failed: %v",
+			source.Abs(name), dest.Abs(tmpName), err)
+		if cerr := dest.Remove(tmpName); cerr != nil {
+			logrus.Warningf("error removing temporary file %s: %v",
+				dest.Abs(tmpName), cerr)
+		}
+
+		return fmt.Errorf("could not copy to temporary file %s: %v",
+			dest.Abs(tmpName), err)
 	}
 
-	rc, err := source.Open(name)
+	if err := dest.Rename(tmpName, name); err != nil {
+		return fmt.Errorf("rename %s to %s failed: %v",
+			dest.Abs(tmpName), dest.Abs(name), err)
+	}
+
+	return nil
+}
+
+func copy(source, dest FileSystem, sourceName, destName string) (err error) {
+	wc, err := dest.Create(destName)
+	if err != nil {
+		return fmt.Errorf("could not create %s: %v", dest.Abs(destName), err)
+	}
+	defer checkClose(dest.Abs(destName), wc, &err)
+
+	rc, err := source.Open(sourceName)
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer checkClose(source.Abs(sourceName), rc, &err)
 
 	if _, err = io.Copy(wc, rc); err != nil {
-		return fmt.Errorf("could not copy %s to %s: %v", source.Abs(name), dest.Abs(name), err)
+		return fmt.Errorf("could not copy %s to %s: %v",
+			source.Abs(sourceName), dest.Abs(destName), err)
 	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("could not close %s: %v", dest.Abs(name), err)
-	}
-	return nil
+
+	return err
 }
 
 func upToDate(dest, source FileSystem, name string) bool {
@@ -96,4 +118,10 @@ func getIndex() (io.ReadCloser, error) {
 		return nil, err
 	}
 	return gzip.NewReader(f)
+}
+
+func checkClose(name string, c io.Closer, err *error) {
+	if cerr := c.Close(); cerr != nil && *err == nil {
+		*err = fmt.Errorf("could not close %s: %v", name, cerr)
+	}
 }

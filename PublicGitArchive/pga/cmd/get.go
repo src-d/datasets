@@ -86,7 +86,9 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 	},
 }
 
-func downloadFilenames(dest, source FileSystem, filenames []string, maxDownloads int) error {
+func downloadFilenames(dest, source FileSystem, filenames []string,
+	maxDownloads int) error {
+
 	tokens := make(chan bool, maxDownloads)
 	for i := 0; i < maxDownloads; i++ {
 		tokens <- true
