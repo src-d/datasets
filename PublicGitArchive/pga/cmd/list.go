@@ -24,20 +24,22 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("could not open index file: %v", err)
 		}
-		defer checkClose("index", f, &err)
 
 		index, err := pga.IndexFromCSV(f)
 		if err != nil {
+			_ = f.Close()
 			return err
 		}
 
 		filter, err := filterFromFlags(cmd.Flags())
 		if err != nil {
+			_ = f.Close()
 			return err
 		}
 
 		formatter, err := formatterFromFlags(cmd.Flags())
 		if err != nil {
+			_ = f.Close()
 			return err
 		}
 
@@ -45,6 +47,7 @@ var listCmd = &cobra.Command{
 		for {
 			select {
 			case <-ctx.Done():
+				_ = f.Close()
 				return fmt.Errorf("command canceled")
 			default:
 			}
@@ -53,6 +56,7 @@ var listCmd = &cobra.Command{
 			if err == io.EOF {
 				break
 			} else if err != nil {
+				_ = f.Close()
 				return err
 			}
 
@@ -62,7 +66,8 @@ var listCmd = &cobra.Command{
 				fmt.Print(s)
 			}
 		}
-		return err
+
+		return f.Close()
 	},
 }
 

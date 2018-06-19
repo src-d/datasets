@@ -52,20 +52,26 @@ func copy(ctx context.Context, source, dest FileSystem,
 	if err != nil {
 		return fmt.Errorf("could not create %s: %v", dest.Abs(destName), err)
 	}
-	defer checkClose(dest.Abs(destName), wc, &err)
 
 	rc, err := source.Open(sourceName)
 	if err != nil {
+		_ = wc.Close()
 		return err
 	}
-	defer checkClose(source.Abs(sourceName), rc, &err)
 
 	if _, err = cancelableCopy(ctx, wc, rc); err != nil {
+		_ = rc.Close()
+		_ = wc.Close()
 		return fmt.Errorf("could not copy %s to %s: %v",
 			source.Abs(sourceName), dest.Abs(destName), err)
 	}
 
-	return err
+	if err := rc.Close(); err != nil {
+		_ = wc.Close()
+		return err
+	}
+
+	return wc.Close()
 }
 
 const copyBufferSize = 512 * 1024
@@ -142,10 +148,4 @@ func getIndex(ctx context.Context) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return gzip.NewReader(f)
-}
-
-func checkClose(name string, c io.Closer, err *error) {
-	if cerr := c.Close(); cerr != nil && *err == nil {
-		*err = fmt.Errorf("could not close %s: %v", name, cerr)
-	}
 }
