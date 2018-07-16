@@ -23,3 +23,7 @@ All the stats correspond to the HEAD revision of each repository in PGA.
 ### Code examples
 
 * [Jupyter notebook](https://gist.github.com/zurk/58afacd6da9bf6319eb2839ff8645d99) which reads the per-language identifiers (2) and plots the statistics.
+
+### License
+
+[Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/)
