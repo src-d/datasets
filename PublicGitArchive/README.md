@@ -1,7 +1,7 @@
 Public Git Archive ![size 3.0TB](https://img.shields.io/badge/size-3.0TB-green.svg)
 ==================
 
-[Paper](https://arxiv.org/abs/1803.10144) (accepted to [MSR'18](https://2018.msrconf.org/track/msr-2018-Data-Showcase-Papers)).
+[Paper](https://arxiv.org/abs/1803.10144) (accepted to [MSR'18](https://2018.msrconf.org/track/msr-2018-Data-Showcase-Papers)). [Presentation](http://vmarkovtsev.github.io/msr-2018-gothenburg/).
 
 This dataset consists of two parts:
 
