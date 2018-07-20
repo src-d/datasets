@@ -18,34 +18,45 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "list all the repositories in the index",
 	Long:  `List the repositories in the index, use flags to filter the results.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		f, err := getIndex()
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		ctx := setupContext()
+		f, err := getIndex(ctx)
 		if err != nil {
 			return fmt.Errorf("could not open index file: %v", err)
 		}
-		defer f.Close()
 
 		index, err := pga.IndexFromCSV(f)
 		if err != nil {
+			_ = f.Close()
 			return err
 		}
 
 		filter, err := filterFromFlags(cmd.Flags())
 		if err != nil {
+			_ = f.Close()
 			return err
 		}
 
 		formatter, err := formatterFromFlags(cmd.Flags())
 		if err != nil {
+			_ = f.Close()
 			return err
 		}
 
 		index = pga.WithFilter(index, filter)
 		for {
+			select {
+			case <-ctx.Done():
+				_ = f.Close()
+				return fmt.Errorf("command canceled")
+			default:
+			}
+
 			r, err := index.Next()
 			if err == io.EOF {
 				break
 			} else if err != nil {
+				_ = f.Close()
 				return err
 			}
 
@@ -55,7 +66,8 @@ var listCmd = &cobra.Command{
 				fmt.Print(s)
 			}
 		}
-		return nil
+
+		return f.Close()
 	},
 }
 

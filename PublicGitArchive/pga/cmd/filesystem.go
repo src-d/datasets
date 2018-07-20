@@ -26,6 +26,8 @@ type FileSystem interface {
 	ModTime(path string) (time.Time, error)
 	Size(path string) (int64, error)
 	MD5(path string) (string, error)
+	Remove(path string) error
+	Rename(oldpath, newpath string) error
 }
 
 // FileSystemFromFlags returns the correct file system given a set of flags.
@@ -63,6 +65,10 @@ func (fs localFS) Open(path string) (io.ReadCloser, error) { return os.Open(fs.A
 func (fs localFS) ModTime(path string) (time.Time, error)  { return modtime(os.Stat(fs.Abs(path))) }
 func (fs localFS) Size(path string) (int64, error)         { return size(os.Stat(fs.Abs(path))) }
 func (fs localFS) MD5(path string) (string, error)         { return md5Hash(fs, path) }
+func (fs localFS) Remove(path string) error                { return os.Remove(fs.Abs(path)) }
+func (fs localFS) Rename(oldpath, newpath string) error {
+	return os.Rename(fs.Abs(oldpath), fs.Abs(newpath))
+}
 
 func md5Hash(fs FileSystem, path string) (string, error) {
 	rc, err := fs.Open(path)
@@ -152,6 +158,14 @@ func (fs urlFS) MD5(path string) (string, error) {
 	return string(bytes.Fields(b)[0]), nil
 }
 
+func (fs urlFS) Remove(path string) error {
+	return fmt.Errorf("not implemented for URLs")
+}
+
+func (fs urlFS) Rename(oldpath, newpath string) error {
+	return fmt.Errorf("not implemented for URLs")
+}
+
 type hdfsFS struct {
 	path string
 	c    *hdfs.Client
@@ -172,6 +186,11 @@ func (fs hdfsFS) Open(path string) (io.ReadCloser, error) { return fs.c.Open(fs.
 func (fs hdfsFS) ModTime(path string) (time.Time, error)  { return modtime(fs.c.Stat(fs.Abs(path))) }
 func (fs hdfsFS) Size(path string) (int64, error)         { return size(fs.c.Stat(fs.Abs(path))) }
 func (fs hdfsFS) MD5(path string) (string, error)         { return md5Hash(fs, path) }
+func (fs hdfsFS) Remove(path string) error                { return fs.c.Remove(fs.Abs(path)) }
+
+func (fs hdfsFS) Rename(oldpath, newpath string) error {
+	return fs.c.Rename(fs.Abs(oldpath), fs.Abs(newpath))
+}
 
 func modtime(fi os.FileInfo, err error) (time.Time, error) {
 	if err != nil {
