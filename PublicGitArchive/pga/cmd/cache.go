@@ -102,11 +102,9 @@ func upToDate(dest, source FileSystem, name string) bool {
 	if err == nil {
 		return ok
 	}
-	logrus.Warnf("could not check md5 hashes for %s, comparing timestamps instead: %v", name, err)
 
 	localTime, err := dest.ModTime(name)
 	if err != nil {
-		logrus.Warnf("could not check mod time in %s: %v", dest.Abs(name), err)
 		return false
 	}
 
@@ -126,6 +124,7 @@ func matchHash(dest, source FileSystem, name string) (bool, error) {
 	}
 	remoteHash, err := source.MD5(name)
 	if err != nil {
+		logrus.Warnf("could not check md5 hashes for %s: %v", source.Abs(name), err)
 		return false, err
 	}
 	return localHash == remoteHash, nil
