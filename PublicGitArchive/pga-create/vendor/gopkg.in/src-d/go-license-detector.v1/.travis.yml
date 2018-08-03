@@ -1,0 +1,58 @@
+dist: trusty
+sudo: required
+
+language: go
+
+go_import_path: gopkg.in/src-d/go-license-detector.v1
+go:
+  - 1.8
+  - 1.9
+
+before_install:
+  - go get -v github.com/golang/lint/golint
+
+install:
+  - go get -v -t ./...
+
+script:
+  - if [[ "$(go version)" != *go1.8* ]]; then go vet ./...; fi
+  - lint_warns=$(golint ./... | grep -v vendor/) || true
+  - if [ ! -z "$lint_warns" ]; then echo "$lint_warns"; exit 1; fi
+  - go test -cpu=1,2 -coverprofile=coverage.txt -covermode=count gopkg.in/src-d/go-license-detector.v1
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+jobs:
+  include:
+    - stage: deploy
+      os: osx
+      go: 1.9
+      after_success:
+        - gzip -S .darwin_amd64.gz $GOPATH/bin/license-detector
+      script: skip
+      deploy:
+        provider: releases
+        api_key:
+          secure: $GITHUB_TOKEN
+        file: "$GOPATH/bin/license-detector.darwin_amd64.gz"
+        skip_cleanup: true
+        on:
+          tags: true
+    - stage: deploy
+      os: linux
+      go: 1.9
+      script: skip
+      after_success:
+        - gzip -S .linux_amd64.gz $GOPATH/bin/license-detector
+      deploy:
+        provider: releases
+        api_key:
+          secure: $GITHUB_TOKEN
+        file: "$GOPATH/bin/license-detector.linux_amd64.gz"
+        skip_cleanup: true
+        on:
+          tags: true
+
+notifications:
+  email: false

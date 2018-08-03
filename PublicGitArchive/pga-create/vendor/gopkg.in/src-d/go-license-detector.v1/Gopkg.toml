@@ -1,0 +1,74 @@
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
+
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/ekzhu/minhash-lsh"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hhatto/gorst"
+
+[[constraint]]
+  name = "github.com/jdkato/prose"
+  version = "1.1.0"
+
+[[override]]
+  name = "github.com/sergi/go-diff"
+  revision = "da645544ed44df016359bd4c0e3dc60ee3a0da43"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.1"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/exp"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/net"
+
+[[constraint]]
+  branch = "master"
+  name = "gonum.org/v1/gonum"
+
+[[constraint]]
+  name = "gopkg.in/russross/blackfriday.v2"
+  version = "2.0.0"
+
+[[constraint]]
+  name = "gopkg.in/src-d/go-git.v4"
+  version = "4.1.0"
+
+[[constraint]]
+  name = "github.com/spf13/pflag"
+  branch = "master"
+
+[prune]
+  go-tests = true
+  unused-packages = true

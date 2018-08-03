@@ -1,0 +1,75 @@
+[[constraint]]
+  name = "github.com/briandowns/spinner"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/colinmarc/hdfs"
+  version = "1.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/dustin/go-humanize"
+
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.1"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/net"
+
+[[constraint]]
+  name = "gopkg.in/cheggaaa/pb.v1"
+  version = "1.0.21"
+
+[[constraint]]
+  name = "github.com/erizocosmico/gocloc"
+  branch = "master"
+
+[[constraint]]
+  name = "gopkg.in/src-d/go-license-detector.v2"
+  version = "2"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.0.4"
+
+[[constraint]]
+  name = "gopkg.in/src-d/go-kallax.v1"
+  version = "1.3.4"
+
+[[constraint]]
+  revision = "03aa9dc1b74be7b62fadc927bedd40e3cd1d7b10"
+  name = "gopkg.in/src-d/core-retrieval.v0"
+
+[[constraint]]
+  name = "gopkg.in/src-d/enry.v1"
+  version = "1.6.3"
+
+[[constraint]]
+  name = "gopkg.in/src-d/go-git.v4"
+  version = "4.1.0"
+
+[[override]]
+  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
+  name = "github.com/satori/go.uuid"
+
+[[override]]
+  name = "gopkg.in/src-d/go-billy.v4"
+  version = "4.1.0"
+
+[[override]]
+  name = "gopkg.in/src-d/go-siva.v1"
+  version = "1.1.3"
+
+[[override]]
+  name = "gopkg.in/src-d/go-billy-siva.v4"
+  version = "4.1.0"
+
+[prune]
+  go-tests = true
+  unused-packages = true
