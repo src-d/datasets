@@ -15,10 +15,6 @@
   version = "0.8.0"
 
 [[constraint]]
-  name = "github.com/spf13/cobra"
-  version = "0.0.1"
-
-[[constraint]]
   branch = "master"
   name = "golang.org/x/net"
 
@@ -72,4 +68,5 @@
 
 [prune]
   go-tests = true
+  non-go = true
   unused-packages = true
