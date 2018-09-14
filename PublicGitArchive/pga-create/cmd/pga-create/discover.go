@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -256,6 +257,20 @@ func findMostRecentMySQLDump(root string) string {
 
 func discoverRepos(params discoveryParameters) {
 	startTime := time.Now()
+
+	for _, p := range []string{
+		params.ReposPath,
+		params.StarsPath,
+		params.LanguagesPath} {
+		if p == "" {
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(p), os.FileMode(0755)); err != nil {
+			fail("could not create directory", err)
+		}
+	}
+
 	spin := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 	spin.Start()
 	defer spin.Stop()
