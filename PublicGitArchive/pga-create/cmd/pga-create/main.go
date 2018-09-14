@@ -11,6 +11,14 @@ var parser = flags.NewParser(nil, flags.Default)
 
 func init() {
 	if _, err := parser.AddCommand(
+		"repack",
+		"Repack GHTorrent MySQL dump",
+		"Repack GHTorrent MySQL dump",
+		&repackCommand{}); err != nil {
+		panic(err)
+	}
+
+	if _, err := parser.AddCommand(
 		"discover",
 		"Fetch the GHTorrent MySQL dump and extract the list of repositories and the stars per repository.",
 		"Fetch the GHTorrent MySQL dump and extract the list of repositories and the stars per repository.",
