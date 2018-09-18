@@ -1,6 +1,6 @@
 # Package configuration
 PROJECT = datasets
-COMMANDS = datasets/PublicGitArchive/borges-indexer/cmd/borges-indexer datasets/PublicGitArchive/multitool datasets/PublicGitArchive/pga
+COMMANDS = datasets/PublicGitArchive/pga-create/cmd/pga-create datasets/PublicGitArchive/pga
 
 # Including ci Makefile
 CI_REPOSITORY ?= https://github.com/src-d/ci.git

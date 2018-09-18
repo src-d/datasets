@@ -5,14 +5,14 @@ language: go
 
 go_import_path: github.com/src-d/datasets
 go:
-  - 1.9.x
   - 1.10.x
+  - 1.11.x
 
 before_install:
   - go get -v github.com/golang/lint/golint
 
 script:
-  - if [[ "$(go version)" != *go1.8* ]]; then go vet ./...; fi
+  - go vet ./...
   - lintwarns=$(golint ./... | grep src-d/datasets || true)
   - if [ ! -z $lintwarns ]; then echo $lintwarns; false; fi
   - make test-coverage
@@ -24,14 +24,12 @@ jobs:
   include:
     - stage: deploy
       os: osx
-      go: 1.9
+      go: 1.11.x
       after_success:
-        - gzip -S .darwin_amd64.gz $GOPATH/bin/multitool
-        - tar -czf $GOPATH/bin/borges-indexer.darwin_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
+        - gzip -S .darwin_amd64.gz $GOPATH/bin/pga-create
         - gzip -S .darwin_amd64.gz $GOPATH/bin/pga
       install:
-        - go get -v github.com/src-d/datasets/PublicGitArchive/multitool/...
-        - go get -v github.com/src-d/datasets/PublicGitArchive/borges-indexer/...
+        - go get -v github.com/src-d/datasets/PublicGitArchive/pga-create/...
         - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
       script: skip
       deploy:
@@ -39,31 +37,27 @@ jobs:
         api_key:
           secure: $GITHUB_TOKEN
         file:
-          - "$GOPATH/bin/multitool.darwin_amd64.gz"
-          - "$GOPATH/bin/borges-indexer.darwin_amd64.tar.gz"
+          - "$GOPATH/bin/pga-create.darwin_amd64.gz"
           - "$GOPATH/bin/pga.darwin_amd64.gz"
         skip_cleanup: true
         on:
           tags: true
     - stage: deploy
       os: linux
-      go: 1.9
+      go: 1.11.x
       install:
-        - go get -v github.com/src-d/datasets/PublicGitArchive/multitool/...
-        - go get -v github.com/src-d/datasets/PublicGitArchive/borges-indexer/...
+        - go get -v github.com/src-d/datasets/PublicGitArchive/pga-create/...
         - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
       script: skip
       after_success:
-        - gzip -S .linux_amd64.gz $GOPATH/bin/multitool
-        - tar -czf $GOPATH/bin/borges-indexer.linux_amd64.tar.gz -C $GOPATH/bin borges-indexer set-forks
+        - gzip -S .linux_amd64.gz $GOPATH/bin/pga-create
         - gzip -S .linux_amd64.gz $GOPATH/bin/pga
       deploy:
         provider: releases
         api_key:
           secure: $GITHUB_TOKEN
         file:
-          - "$GOPATH/bin/multitool.linux_amd64.gz"
-          - "$GOPATH/bin/borges-indexer.linux_amd64.tar.gz"
+          - "$GOPATH/bin/pga-create.linux_amd64.gz"
           - "$GOPATH/bin/pga.linux_amd64.gz"
         skip_cleanup: true
         on:
