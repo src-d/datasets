@@ -60,8 +60,8 @@ func (reader trackingReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-func reduceWatchers(stream io.Reader) map[int]int {
-	stars := map[int]int{}
+func reduceWatchers(stream io.Reader) map[uint32]uint32 {
+	stars := map[uint32]uint32{}
 	scanner := bufio.NewScanner(stream)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -70,64 +70,61 @@ func reduceWatchers(stream io.Reader) map[int]int {
 		if err != nil {
 			fail(fmt.Sprintf("parsing watchers project ID \"%s\"", line[:commaPos]), err)
 		}
-		stars[projectID]++
+		stars[uint32(projectID)]++
 	}
 	return stars
 }
 
 type watchPair struct {
-	Value int
-	Key   int
+	Key, Value uint32
 }
 
-func writeWatchers(stars map[int]int, ids map[int][]int, path string) {
+func writeWatchers(stars map[uint32]uint32, ids map[uint32]bool, path string) {
 	pairs := make([]watchPair, 0, len(stars))
-	majors := map[int]bool{}
-	for key := range stars {
-		myids := ids[key]
-		// if it is a reference, go to the main repository
-		if myids[0] >= 0 {
-			key = myids[0]
-			myids = ids[key]
-		}
-		if majors[key] {
+	for k, v := range stars {
+		if !ids[k] {
 			continue
 		}
-		majors[key] = true
-		maxval := stars[key]
-		for _, id := range myids[1:] {
-			other := stars[id]
-			if other > maxval {
-				maxval = other
-			}
-		}
-		pairs = append(pairs, watchPair{Key: key, Value: maxval})
+		pairs = append(pairs, watchPair{Key: k, Value: v})
 	}
+	// Descending value order
 	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].Value > pairs[j].Value // reverse order
+		return pairs[i].Value > pairs[j].Value
 	})
 	f, err := os.Create(path)
-	defer f.Close()
 	if err != nil {
 		fail("creating watchers file "+path, err)
 	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			fail("closing watchers file", err)
+		}
+	}()
+	gzf := gzip.NewWriter(f)
+	defer gzf.Close()
 	for _, pair := range pairs {
-		fmt.Fprintf(f, "%d %d\n", pair.Key, pair.Value)
+		_, err := fmt.Fprintf(gzf, "%d %d\n", pair.Key, pair.Value)
+		if err != nil {
+			fail("writing to watchers file", err)
+		}
 	}
 }
 
-func writeProjects(stream io.Reader, path string) map[int][]int {
+func writeProjects(stream io.Reader, path string) map[uint32]bool {
 	f, err := os.Create(path)
-	defer f.Close()
 	if err != nil {
 		fail("creating repositories file "+path, err)
 	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			fail("closing repositories file "+path, err)
+		}
+	}()
 	gzf := gzip.NewWriter(f)
 	defer gzf.Close()
 	scanner := bufio.NewScanner(stream)
 	skip := false
-	projects := map[string]int{}
-	ids := map[int][]int{}
+	ids := map[uint32]bool{}
 	for scanner.Scan() {
 		line := scanner.Text()
 		skipThis := skip
@@ -135,6 +132,16 @@ func writeProjects(stream io.Reader, path string) map[int][]int {
 		if skipThis {
 			continue
 		}
+
+		// Skip deleted repositories
+		commaPos2 := strings.LastIndex(line, ",")
+		commaPos2 = strings.LastIndex(line[:commaPos2], ",")
+		commaPos1 := strings.LastIndex(line[:commaPos2], ",")
+		deletedFlag := line[commaPos1+1 : commaPos2]
+		if deletedFlag != "0" {
+			continue
+		}
+
 		commaPos := strings.Index(line, ",")
 		if commaPos < 0 {
 			fail("parsing projects "+line, fmt.Errorf("comma not found"))
@@ -149,19 +156,10 @@ func writeProjects(stream io.Reader, path string) map[int][]int {
 		line = line[commaPos+1+30:] // +"https://api.github.com/repos/
 		commaPos = strings.Index(line, "\"")
 		projectName := line[:commaPos]
-		// there can be duplicates
-		// the slice is always at least one element
-		// negative value means the original (main) repository
-		// otherwise it is a reference to the main one
-		if existingID, exists := projects[projectName]; !exists {
-			projects[projectName] = projectID
-			ids[projectID] = make([]int, 1, 1)
-			ids[projectID][0] = -1
-			fmt.Fprintf(gzf, "%d %s\n", projectID, projectName)
-		} else {
-			ids[existingID] = append(ids[existingID], projectID)
-			ids[projectID] = make([]int, 1, 1)
-			ids[projectID][0] = existingID
+		ids[uint32(projectID)] = true
+		_, err = fmt.Fprintf(gzf, "%d %s\n", projectID, projectName)
+		if err != nil {
+			fail("writing repositories file "+path, err)
 		}
 	}
 	return ids
@@ -303,8 +301,8 @@ func discoverRepos(params discoveryParameters) {
 	}
 	status := 0
 	i := 0
-	var stars map[int]int
-	var ids map[int][]int
+	var stars map[uint32]uint32
+	var ids map[uint32]bool
 	for header, err := tarf.Next(); err != io.EOF; header, err = tarf.Next() {
 		if err != nil {
 			fail("reading tar.gz", err)
