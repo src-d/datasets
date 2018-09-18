@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -50,4 +51,9 @@ func main() {
 
 		panic(err)
 	}
+}
+
+func fail(operation string, err error) {
+	fmt.Fprintf(os.Stderr, "Error: %s: %s\n", operation, err.Error())
+	os.Exit(1)
 }
