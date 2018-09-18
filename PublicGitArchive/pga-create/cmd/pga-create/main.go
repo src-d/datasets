@@ -10,14 +10,6 @@ var parser = flags.NewParser(nil, flags.Default)
 
 func init() {
 	if _, err := parser.AddCommand(
-		"get-dataset",
-		"Download Siva files from the given list in stdin.",
-		"Download Siva files from the given list in stdin.",
-		&getDatasetCommand{}); err != nil {
-		panic(err)
-	}
-
-	if _, err := parser.AddCommand(
 		"discover",
 		"Fetch the GHTorrent MySQL dump and extract the list of repositories and the stars per repository.",
 		"Fetch the GHTorrent MySQL dump and extract the list of repositories and the stars per repository.",
@@ -30,14 +22,6 @@ func init() {
 		"Reduce the full list of repositories from \"discover\" by the specified filters and write the result to stdout.",
 		"Reduce the full list of repositories from \"discover\" by the specified filters and write the result to stdout.",
 		&selectCommand{}); err != nil {
-		panic(err)
-	}
-
-	if _, err := parser.AddCommand(
-		"get-index",
-		"Download the most recent dataset index file.",
-		"Download the most recent dataset index file.",
-		&getIndexCommand{}); err != nil {
 		panic(err)
 	}
 
