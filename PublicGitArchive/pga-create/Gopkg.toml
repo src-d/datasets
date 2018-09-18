@@ -3,10 +3,6 @@
   version = "1.0.0"
 
 [[constraint]]
-  name = "github.com/colinmarc/hdfs"
-  version = "1.1.0"
-
-[[constraint]]
   branch = "master"
   name = "github.com/dustin/go-humanize"
 
