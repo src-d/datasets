@@ -27,8 +27,8 @@ repositories on GitHub with ≥50 stars, which is equivalent to
 the following commands which generate `list.txt`:
 
 ```bash
-pga-create discover -s stars.txt -r repos.txt.gz
-pga-create select -s stars.txt -r repos.txt.gz -m 50 > list.txt
+pga-create discover
+pga-create select -m 50 > repository_list.txt
 ```
 
 ### Cloning repositories
@@ -41,7 +41,7 @@ In the first terminal execute
 
 ```
 borges init
-borges producer --source=file --file list.txt
+borges producer --source=file --file repository_list.txt
 ```
 
 In the second terminal execute
@@ -76,4 +76,3 @@ pga-create set-forks
 ```
 
 This will take `result.csv` and add the forks to it, resulting in a `result_forks.csv` file with the same data you had in the original CSV, only with the forks added.
-

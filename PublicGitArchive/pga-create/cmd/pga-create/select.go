@@ -15,9 +15,9 @@ import (
 )
 
 type selectCommand struct {
-	Stars           string `short:"s" long:"stars" required:"true" description:"Input path for the file with the numbers of stars per repository."`
-	Languages       string `short:"g" long:"languages" description:"Input path for the gzipped file with the mapping between languages and repositories."`
-	Repositories    string `short:"r" long:"repositories" required:"true" description:"Input path for the gzipped file with the repository names and identifiers."`
+	Stars           string `short:"s" long:"stars" default:"data/stars.gz" description:"Input path for the file with the numbers of stars per repository."`
+	Languages       string `short:"g" long:"languages" default:"data/languages.gz" description:"Input path for the gzipped file with the mapping between languages and repositories."`
+	Repositories    string `short:"r" long:"repositories" default:"data/repositories.gz" description:"Input path for the gzipped file with the repository names and identifiers."`
 	MinStars        int    `short:"m" long:"min-stars" description:"Minimum number of stars."`
 	Max             int    `short:"n" long:"max" default:"-1" description:"Maximum number of top-starred repositories to clone. -1 means unlimited. Language filter is applied before."`
 	FilterLanguages string `short:"l" long:"filter-languages" description:"Comma separated list of languages."`

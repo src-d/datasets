@@ -16,7 +16,7 @@ import (
 
 type repackCommand struct {
 	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), read from stdin if possible or find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
-	Output string `short:"o" long:"output" description:"output file"`
+	Output string `short:"o" long:"output" required:"true" description:"output file"`
 }
 
 func (c *repackCommand) Execute(args []string) error {

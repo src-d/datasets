@@ -13,7 +13,7 @@ import (
 )
 
 type indexCommand struct {
-	Output    string `short:"o" long:"output" default:"result.csv" description:"csv file path with the results"`
+	Output    string `short:"o" long:"output" default:"data/index.csv" description:"csv file path with the results"`
 	Debug     bool   `long:"debug" description:"show debug logs"`
 	LogFile   string `long:"logfile" description:"write logs to file"`
 	Limit     uint64 `long:"limit" description:"max number of repositories to process"`

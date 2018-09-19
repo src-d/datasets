@@ -27,9 +27,9 @@ const (
 
 type discoverCommand struct {
 	URL          string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), read from stdin if available or find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
-	Stars        string `short:"s" long:"stars" required:"true" description:"Output path for the file with the numbers of stars per repository."`
-	Languages    string `short:"g" long:"languages" description:"Output path for the gzipped file with the mapping between languages and repositories. May be empty - will be skipped then."`
-	Repositories string `short:"r" long:"repositories" required:"true" description:"Output path for the gzipped file with the repository names and identifiers."`
+	Stars        string `short:"s" long:"stars" default:"data/stars.gz" description:"Output path for the file with the numbers of stars per repository."`
+	Languages    string `short:"g" long:"languages" default:"data/languages.gz" description:"Output path for the gzipped file with the mapping between languages and repositories. May be empty - will be skipped then."`
+	Repositories string `short:"r" long:"repositories" default:"data/repositories.gz" description:"Output path for the gzipped file with the repository names and identifiers."`
 }
 
 func (c *discoverCommand) Execute(args []string) error {
