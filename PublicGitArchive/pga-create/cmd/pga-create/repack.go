@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +15,7 @@ import (
 )
 
 type repackCommand struct {
-	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If \"-\", stdin is read. If empty (default), find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
+	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), read from stdin if possible or find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
 	Output string `short:"o" long:"output" description:"output file"`
 }
 
@@ -32,27 +31,7 @@ func repack(url, output string) {
 	spin.Start()
 	defer spin.Stop()
 
-	var inputFile io.Reader
-	if url == "-" {
-		inputFile = os.Stdin
-	} else {
-		if url == "" {
-			envURL := os.Getenv("GHTORRENT_MYSQL")
-			if envURL == "" {
-				envURL = defaultGhtorrentMySQL
-			}
-			spin.Suffix = " " + envURL
-			url = findMostRecentMySQLDump(envURL)
-			fmt.Printf("\r>> %s\n", url)
-			spin.Suffix = " connecting..."
-		}
-		response, err := http.Get(url)
-		if err != nil {
-			fail("starting the download of "+url, err)
-		}
-		inputFile = response.Body
-		defer response.Body.Close()
-	}
+	inputFile := dumpReader(url, spin)
 	var totalRead int64
 	inputFile = trackingReader{RealReader: inputFile, Callback: func(n int) {
 		totalRead += int64(n)
