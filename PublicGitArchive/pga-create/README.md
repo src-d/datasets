@@ -4,6 +4,7 @@ Tool to create the PGA dataset.
 
 The following commands exist:
 
+* `repack` - downloads latest GHTorrent MySQL dump and repacks it only with the required files (optional step).
 * `discover` - extract the needed information from GHTorrent MySQL dump on the fly. Requires only 1.5 GB of storage.
 * `select` - compile the list of repositories to clone according to various filters, such as stars or languages.
 * `index` - create the index
