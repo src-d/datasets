@@ -11,7 +11,7 @@ This dataset consists of two parts:
 ## Tools
 
 * [pga](pga) - explore the dataset, or download its contents easily.
-* [multitool](multitool) - compile the list of repositories and retrieve an existing dataset.
+* [pga-create](pga-create) - reproduce PGA dataset generation.
 * [borges-indexer](borges-indexer) - exports a CSV file with metadata from repositories fetched with Borges.
 
 ## Listing and downloading
@@ -47,64 +47,7 @@ For more information, check the [pga documentation](pga), or simply run `pga -h`
 
 ## Reproduction
 
-#### Obtain the list of repositories to clone
-
-The list must be a text file with one URL per line. The paper chooses
-repositories on GitHub with ≥50 stars, which is equivalent to
-the following commands which generate `list.txt`:
-
-```bash
-multitool discover -s stars.txt -r repos.txt.gz
-multitool select -s stars.txt -r repos.txt.gz -m 50 > list.txt
-```
-
-#### Cloning repositories
-
-You are going to need [Borges](https://github.com/src-d/borges) and all it's
-dependencies: RabbitMQ and PostgreSQL. The following commands are an artificial
-simplified cloning scenario, please refer to Borges docs for the detailed manual.
-
-In the first terminal execute
-
-```
-borges init
-borges producer --source=file --file list.txt
-```
-
-In the second terminal execute
-
-```
-export CONFIG_ROOT_REPOSITORIES_DIR=/path/where/repositories/will/be/stored
-borges consumer
-```
-
-#### Processing repositories
-
-To process the downloaded repositories you will need `borges-indexer` tool included in this project, and run it querying the database populated in the previous step. This will generate a CSV with the extracted information of all those repositories.
-
-Same environment variables as in borges can be used to configure the database access.
-
-```
-cd borges-indexer
-make build
-./borges-indexer -debug -logfile=borges-indexer.log
-```
-
-The arguments accepted by borges indexer are the following:
-* `-debug`: print more verbose logs that can be used for debugging purposes
-* `-logfile=<LOGFILE PATH>`: path to the file where logs will be written
-* `-limit=N`: max number of repositories to process (useful for batch processing)
-* `-offset=N`: skip the first N repositories (useful for batch processing)
-
-**NOTE:** this spawns as many workers as CPUs are available in the machine. Take into account that some repositories may be considerably large and this process may take a very big amount of memory in the machine.
-
-After being processed with `borges-indexer` you will have a `result.csv` file with all the content you need. The only missing content will be the `FORK_COUNT`, but for that you can use the also included `set-forks` command.
-
-```
-./set-forks
-```
-
-This will take `result.csv` and add the forks to it, resulting in a `result_forks.csv` file with the same data you had in the original CSV, only with the forks added.
+Refer to [pga-create](pga-create) documentation for more details about how PGA is generated.
 
 ## Blacklist
 
