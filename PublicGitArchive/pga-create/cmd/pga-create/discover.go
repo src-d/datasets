@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,10 +26,10 @@ const (
 )
 
 type discoverCommand struct {
-	URL          string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If \"-\", stdin is read. If empty (default), find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
-	Stars        string `short:"s" long:"stars" required:"true" description:"Output path for the file with the numbers of stars per repository."`
-	Languages    string `short:"g" long:"languages" description:"Output path for the gzipped file with the mapping between languages and repositories. May be empty - will be skipped then."`
-	Repositories string `short:"r" long:"repositories" required:"true" description:"Output path for the gzipped file with the repository names and identifiers."`
+	URL          string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), read from stdin if available or find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
+	Stars        string `short:"s" long:"stars" default:"data/stars.gz" description:"Output path for the file with the numbers of stars per repository."`
+	Languages    string `short:"g" long:"languages" default:"data/languages.gz" description:"Output path for the gzipped file with the mapping between languages and repositories. May be empty - will be skipped then."`
+	Repositories string `short:"r" long:"repositories" default:"data/repositories.gz" description:"Output path for the gzipped file with the repository names and identifiers."`
 }
 
 func (c *discoverCommand) Execute(args []string) error {
@@ -50,7 +51,7 @@ type discoveryParameters struct {
 }
 
 type trackingReader struct {
-	RealReader io.Reader
+	RealReader io.ReadCloser
 	Callback   func(n int)
 }
 
@@ -58,6 +59,10 @@ func (reader trackingReader) Read(p []byte) (n int, err error) {
 	n, err = reader.RealReader.Read(p)
 	reader.Callback(n)
 	return n, err
+}
+
+func (reader trackingReader) Close() error {
+	return reader.RealReader.Close()
 }
 
 func reduceWatchers(stream io.Reader) map[uint32]uint32 {
@@ -256,30 +261,27 @@ func findMostRecentMySQLDump(root string) string {
 
 func discoverRepos(params discoveryParameters) {
 	startTime := time.Now()
+
+	for _, p := range []string{
+		params.ReposPath,
+		params.StarsPath,
+		params.LanguagesPath} {
+		if p == "" {
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(p), os.FileMode(0755)); err != nil {
+			fail("could not create directory", err)
+		}
+	}
+
 	spin := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 	spin.Start()
 	defer spin.Stop()
-	var inputFile io.Reader
-	if params.URL == "-" {
-		inputFile = os.Stdin
-	} else {
-		if params.URL == "" {
-			envURL := os.Getenv("GHTORRENT_MYSQL")
-			if envURL == "" {
-				envURL = defaultGhtorrentMySQL
-			}
-			spin.Suffix = " " + envURL
-			params.URL = findMostRecentMySQLDump(envURL)
-			fmt.Printf("\r>> %s\n", params.URL)
-			spin.Suffix = " connecting..."
-		}
-		response, err := http.Get(params.URL)
-		if err != nil {
-			fail("starting the download of "+params.URL, err)
-		}
-		inputFile = response.Body
-		defer response.Body.Close()
-	}
+
+	inputFile := dumpReader(params.URL, spin)
+	defer inputFile.Close()
+
 	var totalRead int64
 	inputFile = trackingReader{RealReader: inputFile, Callback: func(n int) {
 		totalRead += int64(n)
@@ -343,4 +345,34 @@ func discoverRepos(params discoveryParameters) {
 	}
 	fmt.Printf("\nRead      %s\nProcessed %s\nElapsed   %s\n",
 		humanize.Bytes(uint64(totalRead)), humanize.Bytes(uint64(processed)), time.Since(startTime))
+}
+
+func dumpReader(url string, spin *spinner.Spinner) io.ReadCloser {
+	if url == "" {
+		fi, err := os.Stdin.Stat()
+		if err != nil {
+			fail("checking stat on stdin", err)
+		}
+
+		if fi.Mode()&os.ModeNamedPipe != 0 {
+			return os.Stdin
+		}
+
+		envURL := os.Getenv("GHTORRENT_MYSQL")
+		if envURL == "" {
+			envURL = defaultGhtorrentMySQL
+		}
+
+		spin.Suffix = " " + envURL
+		url = findMostRecentMySQLDump(envURL)
+	}
+
+	fmt.Printf("\r>> %s\n", url)
+	spin.Suffix = " connecting..."
+	response, err := http.Get(url)
+	if err != nil {
+		fail("starting the download of "+url, err)
+	}
+
+	return response.Body
 }
