@@ -98,9 +98,8 @@ func cancelableCopy(ctx context.Context, dst io.Writer, src io.Reader) (int64, e
 }
 
 func upToDate(dest, source FileSystem, name string) bool {
-	ok, err := matchHash(dest, source, name)
-	if err == nil {
-		return ok
+	if matchHash(dest, source, name) {
+		return true
 	}
 
 	localTime, err := dest.ModTime(name)
@@ -117,17 +116,16 @@ func upToDate(dest, source FileSystem, name string) bool {
 	return !localTime.IsZero() && !remoteTime.IsZero() && remoteTime.Before(localTime)
 }
 
-func matchHash(dest, source FileSystem, name string) (bool, error) {
+func matchHash(dest, source FileSystem, name string) bool {
 	localHash, err := dest.MD5(name)
 	if err != nil {
-		return false, err
+		return false
 	}
 	remoteHash, err := source.MD5(name)
 	if err != nil {
-		logrus.Warnf("could not check md5 hashes for %s: %v", source.Abs(name), err)
-		return false, err
+		return false
 	}
-	return localHash == remoteHash, nil
+	return localHash == remoteHash
 }
 
 func getIndex(ctx context.Context) (io.ReadCloser, error) {
