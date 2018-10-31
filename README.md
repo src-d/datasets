@@ -15,5 +15,5 @@ Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) an
 
 ## License
 
-The tools and scripts are licensed under Apache 2.0, see [LICENSE.md](LICENSE.md).
+The tools and scripts are licensed under Apache 2.0, see [LICENSE](LICENSE)
 
