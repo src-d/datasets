@@ -88,6 +88,7 @@ func selectRepos(parameters selectionParameters) {
 	}
 	defer gzf.Close()
 	scanner := bufio.NewScanner(gzf)
+	var count int
 	for scanner.Scan() {
 		var repoID int
 		var repoName string
@@ -100,9 +101,17 @@ func selectRepos(parameters selectionParameters) {
 			fail("parsing repositories file "+parameters.ReposFile, err)
 		}
 		if selectedRepos[repoID] {
+			count++
 			bar.Increment()
 			fmt.Fprintf(os.Stdout, parameters.URLTemplate+"\n", repoName)
 		}
+		if count >= len(selectedRepos) {
+			break
+		}
+	}
+
+	if sErr := scanner.Err(); sErr != nil {
+		fail("scanning repositories file "+parameters.ReposFile, sErr)
 	}
 }
 
@@ -112,7 +121,14 @@ func filterStars(path string, minStars int, topN int, selectedRepos map[int]bool
 		fail("opening stars file "+path, err)
 	}
 	defer f.Close()
-	scanner := bufio.NewScanner(f)
+
+	gzf, err := gzip.NewReader(f)
+	if err != nil {
+		fail("decompressing stars file "+path, err)
+	}
+	defer gzf.Close()
+
+	scanner := bufio.NewScanner(gzf)
 	repos := map[int]bool{}
 	var stars int
 	for scanner.Scan() {
@@ -139,6 +155,11 @@ func filterStars(path string, minStars int, topN int, selectedRepos map[int]bool
 			break
 		}
 	}
+
+	if sErr := scanner.Err(); sErr != nil {
+		fail("scanning stars file "+path, sErr)
+	}
+
 	return repos
 }
 

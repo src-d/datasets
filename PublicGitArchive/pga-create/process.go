@@ -35,6 +35,7 @@ type repositoryData struct {
 	Branches    int
 	Forks       int
 	License     map[string]float32
+	Stars       int
 }
 
 func (r repositoryData) toRecord() []string {
@@ -89,6 +90,7 @@ func (r repositoryData) toRecord() []string {
 		join(langCodeLines),       // "CODE_LINES_COUNT"
 		join(langCommentLines),    // "COMMENT_LINES_COUNT"
 		join(licenses),            // "LICENSE"
+		fmt.Sprint(r.Stars),       // "STARS"
 	}
 }
 
@@ -111,6 +113,7 @@ var csvHeader = []string{
 	"CODE_LINES_COUNT",
 	"COMMENT_LINES_COUNT",
 	"LICENSE",
+	"STARS",
 }
 
 type language struct {
@@ -128,6 +131,7 @@ func processRepos(
 	workers int,
 	txer repository.RootedTransactioner,
 	rs *model.RepositoryResultSet,
+	stars map[string]int,
 ) <-chan *repositoryData {
 	logrus.WithField("workers", runtime.NumCPU()).Info("start processing repos")
 	start := time.Now()
@@ -157,7 +161,7 @@ func processRepos(
 				log.Debug("starting worker")
 				defer log.Debug("stopping worker")
 
-				data, err := newProcessor(repo, txer, locker).process()
+				data, err := newProcessor(repo, txer, locker, stars).process()
 				if err == errNoHEAD {
 					log.WithField("repo", repo.ID).Warn("empty repository")
 					ch <- &repositoryData{
@@ -186,17 +190,20 @@ type processor struct {
 	dbRepo *model.Repository
 	txer   repository.RootedTransactioner
 	locker *locker
+	stars  map[string]int
 }
 
 func newProcessor(
 	dbRepo *model.Repository,
 	txer repository.RootedTransactioner,
 	locker *locker,
+	stars map[string]int,
 ) *processor {
 	return &processor{
 		dbRepo: dbRepo,
 		txer:   txer,
 		locker: locker,
+		stars:  stars,
 	}
 }
 
@@ -393,7 +400,14 @@ func (p *processor) data() (*repositoryData, error) {
 			Warn("unable to get license for repository")
 	}
 
+	data.Stars = getStars(p.stars, data.URL)
+
 	return &data, nil
+}
+
+func getStars(stars map[string]int, url string) int {
+	repo := trimRepoURL(url)
+	return stars[repo]
 }
 
 func (p *processor) head() (*plumbing.Reference, error) {
