@@ -30,6 +30,7 @@ type Repository struct {
 	Commits  int64 `json:"commitsCount"`  // Number of commits in the repository.
 	Branches int64 `json:"branchesCount"` // Number of branches in the repository.
 	Forks    int64 `json:"forkCount"`     // Number of forks of this repository.
+	Stars    int64 `json:"stars"`         // Number of stars of this repository.
 }
 
 // CSVHeaders are the headers expected for the CSV formatted index.
@@ -54,6 +55,7 @@ const (
 	headerCodeLinesCount
 	headerCommentLinesCount
 	headerLicense
+	headerStars
 )
 
 var csvHeaders = []string{
@@ -71,6 +73,7 @@ var csvHeaders = []string{
 	headerCodeLinesCount:    "CODE_LINES_COUNT",
 	headerCommentLinesCount: "COMMENT_LINES_COUNT",
 	headerLicense:           "LICENSE",
+	headerStars:             "STARS",
 }
 
 // RepositoryFromCSV returns a repository given a CSV representation of it.
@@ -91,6 +94,7 @@ func RepositoryFromCSV(cols []string) (repo *Repository, err error) {
 		LanguagesCodeLines:    p.intList(headerCodeLinesCount),
 		LanguagesCommentLines: p.intList(headerCommentLinesCount),
 		License:               cols[headerLicense],
+		Stars:                 p.int(headerStars),
 	}, p.err
 }
 
@@ -111,6 +115,7 @@ func (r *Repository) ToCSV() []string {
 		headerCodeLinesCount:    formatIntList(r.LanguagesCodeLines),
 		headerCommentLinesCount: formatIntList(r.LanguagesCommentLines),
 		headerLicense:           r.License,
+		headerStars:             formatInt(r.Stars),
 	}
 }
 

@@ -144,5 +144,6 @@ func getIndex(ctx context.Context) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return gzip.NewReader(f)
 }
