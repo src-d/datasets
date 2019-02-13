@@ -58,14 +58,21 @@ To process the downloaded repositories you will need the `pga-create index` comm
 Same environment variables as in borges can be used to configure the database access.
 
 ```
-pga-create index -debug -logfile=borges-indexer.log
+pga-create index --debug --logfile=pga-create-index.log
 ```
 
-The arguments accepted by borges indexer are the following:
-* `-debug`: print more verbose logs that can be used for debugging purposes
-* `-logfile=<LOGFILE PATH>`: path to the file where logs will be written
-* `-limit=N`: max number of repositories to process (useful for batch processing)
-* `-offset=N`: skip the first N repositories (useful for batch processing)
+The options accepted by `pga-create index` are the following:
+```
+-o, --output=   csv file path with the results (default: data/index.csv)
+--debug         show debug logs
+--logfile=      write logs to file
+--limit=        max number of repositories to process
+--offset=       skip initial n repositories
+--workers=      number of workers to use (defaults to number of CPUs)
+--repos-file=   path to a file with a repository per line, only those will be processed
+-s, --stars=    input path for the file with the numbers of stars per repository (default: data/stars.gz)
+-r, --repositories= input path for the gzipped file with the repository names and identifiers (default: data/repositories.gz)
+```
 
 **NOTE:** this spawns as many workers as CPUs are available in the machine. Take into account that some repositories may be considerably large and this process may take a very big amount of memory in the machine.
 
