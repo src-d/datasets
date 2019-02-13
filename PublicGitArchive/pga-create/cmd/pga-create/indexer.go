@@ -20,8 +20,8 @@ type indexCommand struct {
 	Offset       uint64 `long:"offset" description:"skip initial n repositories"`
 	Workers      int    `long:"workers" description:"number of workers to use (defaults to number of CPUs)"`
 	ReposFile    string `long:"repos-file" description:"path to a file with a repository per line, only those will be processed"`
-	Stars        string `short:"s" long:"stars" default:"data/stars.gz" description:"Input path for the file with the numbers of stars per repository."`
-	Repositories string `short:"r" long:"repositories" default:"data/repositories.gz" description:"Input path for the gzipped file with the repository names and identifiers."`
+	Stars        string `short:"s" long:"stars" default:"data/stars.gz" description:"input path for the file with the numbers of stars per repository"`
+	Repositories string `short:"r" long:"repositories" default:"data/repositories.gz" description:"input path for the gzipped file with the repository names and identifiers"`
 }
 
 func (c *indexCommand) Execute(args []string) error {
