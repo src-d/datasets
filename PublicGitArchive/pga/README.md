@@ -28,6 +28,11 @@ By default only the repository URL is displayed, but you can change that with th
 - `--format csv` (or `-f cvs`) will print CVS rows with all the details,
 - `--format json` (or `-f json`) will print do the same for JSON.
 
+The extended information includes the fields: `URL`, `SIVA_FILENAMES`, `FILE_COUNT`, `LANGS`,`LANGS_BYTE_COUNT`, `LANGS_LINES_COUNT`,`LANGS_FILES_COUNT`, `COMMITS_COUNT`, `BRANCHES_COUNT`, `FORK_COUNT`, `EMPTY_LINES_COUNT`, `CODE_LINES_COUNT`, `COMMENT_LINES_COUNT`, `LICENSE`, and `STARS`.
+
+Note that the field `STARS` can hold the value `-1` to point out that the index doesn't have information about the number of stars. This ensures compatibility between different index versions.
+
+
 #### Filtering results
 
 You can now add some filters to decide which ones you want to see, for now we've implemented only two

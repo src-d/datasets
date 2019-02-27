@@ -124,7 +124,10 @@ type Index interface {
 	Next() (*Repository, error)
 }
 
-type csvIndex struct{ r *csv.Reader }
+type csvIndex struct {
+	r         *csv.Reader
+	withStars bool
+}
 
 func (idx *csvIndex) Next() (*Repository, error) {
 	rows, err := idx.r.Read()
@@ -132,6 +135,10 @@ func (idx *csvIndex) Next() (*Repository, error) {
 		return nil, err
 	}
 	if rows[0] != csvHeaders[0] {
+		if !idx.withStars {
+			rows = append(rows, "-1")
+		}
+
 		return RepositoryFromCSV(rows)
 	}
 	return idx.Next()
@@ -147,15 +154,21 @@ func IndexFromCSV(r io.Reader) (Index, error) {
 		return nil, fmt.Errorf("could not skip headers row: %v", err)
 	}
 
-	if len(header) != len(csvHeaders) {
+	withStars := true
+	switch {
+	case len(header) == len(csvHeaders)-1:
+		withStars = false
+	case len(header) != len(csvHeaders):
 		return nil, errBadHeader
 	}
+
 	for i := range header {
 		if header[i] != csvHeaders[i] {
 			return nil, errBadHeader
 		}
 	}
-	return &csvIndex{cr}, nil
+
+	return &csvIndex{cr, withStars}, nil
 }
 
 // A Filter provides a way to filter repositories.
