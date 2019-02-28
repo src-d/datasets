@@ -18,6 +18,12 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 1GB
 - Description: ~49M distinct identifiers extracted from 10+ programming languages.
 
+### Code duplicates
+
+- [Manually labelled pairs of files and functions](Duplicates)
+- Size: 250MB
+- Description: 2k Java file and 600 Java function pairs labeled as similar or different by several programmers.
+
 ## Contributions
 
 Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
