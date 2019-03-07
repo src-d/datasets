@@ -74,6 +74,12 @@ The options accepted by `pga-create index` are the following:
 -r, --repositories= input path for the gzipped file with the repository names and identifiers (default: data/repositories.gz)
 ```
 
+To set the `SIZE` field properly, it relies on the default temporary directories configuration for the [core-retrieval](https://github.com/src-d/core-retrieval) dependency but for the `CONFIG_CLEAN_TEMP_DIR` environment variable which must be set to `true`:
+
+```
+CONFIG_CLEAN_TEMP_DIR=true pga-create index --debug --logfile=pga-create-index.log
+```
+
 **NOTE:** this spawns as many workers as CPUs are available in the machine. Take into account that some repositories may be considerably large and this process may take a very big amount of memory in the machine.
 
 After being processed with `index` you will have a `result.csv` file with all the content you need. The only missing content will be the `FORK_COUNT`, but for that you can use the also included `set-forks` command.
