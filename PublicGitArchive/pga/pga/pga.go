@@ -14,6 +14,7 @@ import (
 type Repository struct {
 	URL       string   `json:"url"`           // URL of the repository.
 	Filenames []string `json:"sivaFilenames"` // Siva filenames.
+	Size      int64    `json:"size"`          // Sum of the siva files sizes.
 	License   string   `json:"license"`       // Main license name of the repository.
 
 	// Stats per language
@@ -56,6 +57,7 @@ const (
 	headerCommentLinesCount
 	headerLicense
 	headerStars
+	headerSize
 )
 
 var csvHeaders = []string{
@@ -74,6 +76,7 @@ var csvHeaders = []string{
 	headerCommentLinesCount: "COMMENT_LINES_COUNT",
 	headerLicense:           "LICENSE",
 	headerStars:             "STARS",
+	headerSize:              "SIZE",
 }
 
 // RepositoryFromCSV returns a repository given a CSV representation of it.
@@ -95,6 +98,7 @@ func RepositoryFromCSV(cols []string) (repo *Repository, err error) {
 		LanguagesCommentLines: p.intList(headerCommentLinesCount),
 		License:               cols[headerLicense],
 		Stars:                 p.int(headerStars),
+		Size:                  p.int(headerSize),
 	}, p.err
 }
 
@@ -116,6 +120,7 @@ func (r *Repository) ToCSV() []string {
 		headerCommentLinesCount: formatIntList(r.LanguagesCommentLines),
 		headerLicense:           r.License,
 		headerStars:             formatInt(r.Stars),
+		headerSize:              formatInt(r.Size),
 	}
 }
 
@@ -127,6 +132,7 @@ type Index interface {
 type csvIndex struct {
 	r         *csv.Reader
 	withStars bool
+	withSize  bool
 }
 
 func (idx *csvIndex) Next() (*Repository, error) {
@@ -136,6 +142,10 @@ func (idx *csvIndex) Next() (*Repository, error) {
 	}
 	if rows[0] != csvHeaders[0] {
 		if !idx.withStars {
+			rows = append(rows, "-1")
+		}
+
+		if !idx.withSize {
 			rows = append(rows, "-1")
 		}
 
@@ -149,26 +159,34 @@ var errBadHeader = fmt.Errorf("bad header, expected %s", strings.Join(csvHeaders
 // IndexFromCSV returns an Index reading from a CSV file.
 func IndexFromCSV(r io.Reader) (Index, error) {
 	cr := csv.NewReader(r)
-	header, err := cr.Read()
+	headers, err := cr.Read()
 	if err != nil {
 		return nil, fmt.Errorf("could not skip headers row: %v", err)
 	}
 
-	withStars := true
-	switch {
-	case len(header) == len(csvHeaders)-1:
-		withStars = false
-	case len(header) != len(csvHeaders):
+	// check for compatibility between old indexes
+	length := len(headers)
+	expected := len(csvHeaders)
+	if length < expected-2 || length > expected {
 		return nil, errBadHeader
 	}
 
-	for i := range header {
-		if header[i] != csvHeaders[i] {
+	var withStars, withSize bool
+	for i := range headers {
+		h := headers[i]
+		if h != csvHeaders[i] {
 			return nil, errBadHeader
+		}
+
+		switch h {
+		case csvHeaders[headerStars]:
+			withStars = true
+		case csvHeaders[headerSize]:
+			withSize = true
 		}
 	}
 
-	return &csvIndex{cr, withStars}, nil
+	return &csvIndex{cr, withStars, withSize}, nil
 }
 
 // A Filter provides a way to filter repositories.
