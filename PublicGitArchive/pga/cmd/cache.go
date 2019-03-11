@@ -11,10 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	indexURL  = "http://pga.sourced.tech/csv"
-	indexName = "latest.csv.gz"
-)
+const indexURL = "http://pga.sourced.tech/csv"
 
 // updateCache checks whether a new version of the file in url exists and downloads it
 // to dest. It returns an error when it was not possible to update it.
