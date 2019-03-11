@@ -102,7 +102,7 @@ func downloadFilenames(ctx context.Context, dest, source FileSystem,
 
 	done := make(chan error)
 	for _, filename := range filenames {
-		filename := filepath.Join("siva", "latest", filename[:2], filename)
+		filename := filepath.Join("siva", pgaVersion, filename[:2], filename)
 		go func() {
 			select {
 			case <-tokens:

@@ -24,6 +24,15 @@ For more info, check http://pga.sourced.tech/`,
 		if v {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
+
+		pv, err := cmd.Flags().GetString("pga-version")
+		if err != nil {
+			return err
+		}
+
+		pgaVersion = pv
+		indexName = pv + ".csv.gz"
+
 		return nil
 	},
 }
@@ -37,7 +46,13 @@ func Execute() {
 	}
 }
 
+var (
+	indexName  string
+	pgaVersion string
+)
+
 func init() {
 	RootCmd.Flags().BoolP("toggle", "t", false, "help message for toggle")
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "log more information")
+	RootCmd.PersistentFlags().StringVar(&pgaVersion, "pga-version", "latest", "pga version to be used")
 }
