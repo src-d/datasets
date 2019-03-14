@@ -3,6 +3,7 @@ PROJECT = pga-create
 COMMANDS = cmd/pga-create
 
 DOCKER_ORG = srcd
+GO_TAGS ?= norwfs
 
 # Including ci Makefile
 CI_REPOSITORY ?= https://github.com/src-d/ci.git
