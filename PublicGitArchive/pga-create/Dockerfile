@@ -1,6 +1,6 @@
-#==========================================================================
-# Stage 1: build pga-create and create select-repos and index-repos scripts
-#==========================================================================
+#==========================
+# Stage 1: build pga-create
+#==========================
 FROM golang:1.12.0-alpine3.9 AS builder
 
 # build pga-create
@@ -9,19 +9,8 @@ ENV PGA_CREATE_PATH=$GOPATH/src/$PGA_CREATE_REPO
 COPY . ${PGA_CREATE_PATH}
 RUN go build -tags norwfs -o /bin/pga-create ${PGA_CREATE_PATH}/cmd/pga-create
 
-# select-repos command
-RUN echo -e '#!/bin/sh \n\
-    pga-create discover && \
-    pga-create select -m $STARS >/pga/data/pga.list'>/bin/select-repos && \
-    chmod +x /bin/select-repos
-
-# index-repos command
-RUN echo -e '#!/bin/sh \n\
-    CONFIG_ROOT_REPOSITORIES_DIR=/pga/root-repositories CONFIG_CLEAN_TEMP_DIR=true CONFIG_BUCKETSIZE=$BUCKET_SIZE \
-    pga-create index --debug --repos-file=/pga/data/pga.list && \
-    pga-create set-forks -f /pga/data/index.csv -o /pga/data/index_$PGA_VERSION.csv &&\
-    tar -czf /pga/root-repositories/index_$PGA_VERSION.tar.gz -C /pga/data/ index_$PGA_VERSION.csv'>/bin/index-repos && \
-    chmod +x /bin/index-repos
+RUN cp ${PGA_CREATE_PATH}/select-repos.sh /bin/select-repos && chmod +x /bin/select-repos
+RUN cp ${PGA_CREATE_PATH}/index-repos.sh /bin/index-repos && chmod +x /bin/index-repos
 
 RUN wget -q -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && \
     chmod +x /usr/local/bin/dumb-init
