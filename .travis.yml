@@ -65,3 +65,6 @@ jobs:
 
 notifications:
   email: false
+
+after_deploy:
+  - cd $GOPATH/src/github.com/src-d/datasets/PublicGitArchive/pga-create/ && make docker-push-latest-release
