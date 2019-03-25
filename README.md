@@ -24,6 +24,12 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 250MB
 - Description: 2k Java file and 600 Java function pairs labeled as similar or different by several programmers.
 
+### Pull Request review comments
+
+- [PR review comments](ReviewComments)
+- Size: 1.6GB
+- Description: 25.3 million GitHub PR review comments since January 2015 till December 2018.
+
 ## Contributions
 
 Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
