@@ -15,23 +15,24 @@ import (
 )
 
 type repackCommand struct {
-	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), read from stdin if possible or find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
+	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), it find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
+	Stdin  bool   `long:"stdin" description:"read GHTorrent MySQL dump from stdin"`
 	Output string `short:"o" long:"output" required:"true" description:"output file"`
 }
 
 func (c *repackCommand) Execute(args []string) error {
-	repack(c.URL, c.Output)
+	repack(c.Stdin, c.URL, c.Output)
 
 	return nil
 }
 
-func repack(url, output string) {
+func repack(stdin bool, url, output string) {
 	startTime := time.Now()
 	spin := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 	spin.Start()
 	defer spin.Stop()
 
-	inputFile := dumpReader(url, spin)
+	inputFile := dumpReader(stdin, url, spin)
 	var totalRead int64
 	inputFile = trackingReader{RealReader: inputFile, Callback: func(n int) {
 		totalRead += int64(n)
