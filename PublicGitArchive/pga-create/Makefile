@@ -2,7 +2,6 @@
 PROJECT = pga-create
 COMMANDS = cmd/pga-create
 
-DOCKER_ORG = srcd
 GO_TAGS ?= norwfs
 
 # Including ci Makefile
