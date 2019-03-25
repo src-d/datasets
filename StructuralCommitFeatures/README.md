@@ -1,11 +1,11 @@
 # Structural features extracted from commits ![size 3.2GB](https://img.shields.io/badge/size-3.2GB-green.svg)
-[The dataset](https://drive.google.com/open?id=1T9ICNPj0vcNnOMtWzZskhqqDD0JOHGFe) contains json objects with structural features for 1.6 million commits from 622 Java repositories. The repositories were chosen based on number of stars (>500) and number of commits (>1000).
+[The dataset](https://drive.google.com/open?id=1T9ICNPj0vcNnOMtWzZskhqqDD0JOHGFe) contains json objects with structural features for 1.6 million commits from 622 Java repositories. The repositories were chosen based on a number of stars (>500) and number of commits (>1000).
 
 ### Folder structure
 The folder structure of this dataset reflects the paths of repositories on GitHub. For example, features for commits of the repository [github.com/ReactiveX/RxJava/](https://github.com/ReactiveX/RxJava/) are stored in a zip file in a folder ReactiveX/RxJava. The zip file contains a file with one Json object per line. Every Json object corresponds to one commit in that repository. 
 
 ### Format of the Json objects
-The Json object corresponds to a commit. For every modified file in that particular commit, it stores an array of edits which would produce the destination AST when applied to the source AST. Every edit contains an information about a type of change (`INS`, `DEL`, `MOV`, `UPD`), the entity changed (types of entities are listed below), list of parent and children nodes in the AST and a location within the file. Depending on the type of change, some field may not be present. For example, if the the type of change is `DEL`, the field `location_dst` — which corresponds to a location within the new version of a file — will not be present. Here is the structure of the Json object:
+The Json object corresponds to a commit. For every modified file in that particular commit, it stores an array of edits which would produce the destination AST when applied to the source AST. Every edit contains information about a type of change (`INS`, `DEL`, `MOV`, `UPD`), the entity changed (types of entities are listed below), list of parent and children nodes in the AST and a location within the file. Depending on the type of change, some field may not be present. For example, if the type of change is `DEL`, the field `location_dst` — which corresponds to a location within the new version of a file — will not be present. Here is the structure of the Json object:
 ```json
 {  
    "id":"hash of the commit",
@@ -112,7 +112,7 @@ Here is a real [example](example.json)
 *	`While`	 
 
 ### Dataset generation
-To extract the features for all commits within a default branch in a repository, we forked and modified a tool called [Coming](https://github.com/SpoonLabs/coming). Internally, this tool uses GumTreeDiff to compute the set of edits. Be aware that this algorithm is not perfect and in some cases it may produce few non-intuitive edits.
+To extract the features for all commits within a default branch in a repository, we forked and modified a tool called [Coming](https://github.com/SpoonLabs/coming). Internally, this tool uses GumTreeDiff to compute the set of edits. Be aware that this algorithm is not perfect and in some cases, it may produce few non-intuitive edits.
 
 
 ### License
