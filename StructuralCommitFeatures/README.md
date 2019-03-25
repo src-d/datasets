@@ -112,7 +112,7 @@ Here is a real [example](example.json)
 *	`While`	 
 
 ### Dataset generation
-To extract the features for all commits within a default branch in a repository, we forked and modified a tool called [Coming](https://github.com/SpoonLabs/coming). Internally, this tool uses GumTreeDiff to compute the set of edits. Be aware that this algorithm is not perfect and in some cases, it may produce few non-intuitive edits.
+To extract the features for all commits within a default branch in a repository, we forked and modified a tool called [Coming](https://github.com/SpoonLabs/coming). Internally, this tool uses [GumTreeDiff](https://github.com/SpoonLabs/gumtree-spoon-ast-diff) to compute the set of edits. Be aware that this algorithm is not perfect and in some cases may produce few non-intuitive edits.
 
 
 ### License
