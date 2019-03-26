@@ -27,7 +27,7 @@ This repository contains all the needed tools and scripts to reproduce the datas
 ### Pull Request review comments
 
 - [PR review comments](ReviewComments)
-- Size: 1.6GB
+- Size: 1.5GB
 - Description: 25.3 million GitHub PR review comments since January 2015 till December 2018.
 
 ## Contributions

@@ -1,6 +1,6 @@
-# GitHub Pull Request Review Comments ![size 1.6GB](https://img.shields.io/badge/size-1.6GB-green.svg)
+# GitHub Pull Request Review Comments ![size 1.5GB](https://img.shields.io/badge/size-1.5GB-green.svg)
 
-[Download link.](https://drive.google.com/file/d/1bPEmq0qS_jvRlb9M1veLzyUJiAcV_Buz)
+[Download link.](https://drive.google.com/file/d/1t-3ZwprNqBHZhO2_Mhp0Y1bCX9M500SM)
 
 25.3 million pull request review comments on GitHub since January 2015 till December 2018.
 
