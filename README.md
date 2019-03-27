@@ -30,6 +30,12 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 1.6GB
 - Description: 25.3 million GitHub PR review comments since January 2015 till December 2018.
 
+### Commit messages
+
+- [Commit messages](CommitMessages)
+- Size: 46GB
+- Description: 1.3 billion GitHub commit messages till March 2019.
+
 ## Contributions
 
 Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
