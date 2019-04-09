@@ -7,12 +7,15 @@
 
 set -e
 
+readonly PGA_DATA_PATH=/pga/data
+readonly PGA_LIST=repositories-index.csv.gz
+
 CONFIG_ROOT_REPOSITORIES_DIR=/pga/root-repositories \
 CONFIG_CLEAN_TEMP_DIR=true \
 CONFIG_BUCKETSIZE=$BUCKET_SIZE \
-pga-create index --debug --repos-file=/pga/data/pga.list
+pga-create index --debug -r $PGA_DATA_PATH/$PGA_LIST
 
-pga-create set-forks -f /pga/data/index.csv -o /pga/data/index_$PGA_VERSION.csv
+pga-create set-forks -f $PGA_DATA_PATH/index.csv -o $PGA_DATA_PATH/index_$PGA_VERSION.csv
 
-tar -czf /pga/root-repositories/index_$PGA_VERSION.tar.gz -C /pga/data/ index_$PGA_VERSION.csv
+tar -czf /pga/root-repositories/index_$PGA_VERSION.tar.gz -C $PGA_DATA_PATH/ index_$PGA_VERSION.csv
 
