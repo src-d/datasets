@@ -36,6 +36,12 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 46GB
 - Description: 1.3 billion GitHub commit messages till March 2019.
 
+### Structural commit features
+
+- [Structural commit features](StructuralCommitFeatures)
+- Size: 1.9GB
+- Description: 1.6 million commits in 622 Java repositories on GitHub.
+
 ## Contributions
 
 Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
