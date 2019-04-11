@@ -16,14 +16,8 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-const (
-	defaultGhtorrentMySQL = "http://ghtorrent-downloads.ewi.tudelft.nl/mysql/"
-)
-
 type discoverCommand struct {
-	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), it find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
-	Stdin  bool   `long:"stdin" description:"read GHTorrent MySQL dump from stdin"`
-	Output string `short:"o" long:"output" default:"data/repositories.csv.gz" description:"Ouput path for the gzipped file with the repositories extracted information."`
+	dumpCommand
 }
 
 func (c *discoverCommand) Execute(args []string) error {

@@ -19,10 +19,16 @@ import (
 	"golang.org/x/net/html"
 )
 
-type repackCommand struct {
-	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), it find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
+const defaultGhtorrentMySQL = "http://ghtorrent-downloads.ewi.tudelft.nl/mysql/"
+
+type dumpCommand struct {
+	URL    string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format." default:"http://ghtorrent-downloads.ewi.tudelft.nl/mysql/." env:"GHTORRENT_MYSQL"`
 	Stdin  bool   `long:"stdin" description:"read GHTorrent MySQL dump from stdin"`
-	Output string `short:"o" long:"output" required:"true" description:"output file"`
+	Output string `short:"o" long:"output" default:"data/repositories.csv.gz" description:"Ouput path for the gzipped file with the repositories extracted information."`
+}
+
+type repackCommand struct {
+	dumpCommand
 }
 
 func (c *repackCommand) Execute(args []string) error {
@@ -97,14 +103,9 @@ func dumpReader(stdin bool, url string, spin *spinner.Spinner) io.ReadCloser {
 		}
 	}
 
-	if url == "" {
-		envURL := os.Getenv("GHTORRENT_MYSQL")
-		if envURL == "" {
-			envURL = defaultGhtorrentMySQL
-		}
-
-		spin.Suffix = " " + envURL
-		url = findMostRecentMySQLDump(envURL)
+	if url == defaultGhtorrentMySQL {
+		spin.Suffix = " " + url
+		url = findMostRecentMySQLDump(url)
 	}
 
 	fmt.Printf("\r>> %s\n", url)
@@ -122,11 +123,13 @@ func findMostRecentMySQLDump(root string) string {
 	if err != nil {
 		fail("parsing "+root, err)
 	}
+
 	response, err := http.Get(ghturl.String())
 	if err != nil {
 		fail("connecting to "+ghturl.String(), err)
 	}
 	defer response.Body.Close()
+
 	tokenizer := html.NewTokenizer(response.Body)
 	dumps := []string{}
 	for token := tokenizer.Next(); token != html.ErrorToken; token = tokenizer.Next() {
@@ -142,15 +145,18 @@ func findMostRecentMySQLDump(root string) string {
 			}
 		}
 	}
+
 	if len(dumps) == 0 {
 		fail("getting the list of available dumps", errors.New("no dumps found"))
 	}
+
 	sort.Strings(dumps)
 	lastDumpStr := dumps[len(dumps)-1]
 	dumpurl, err := url.Parse(lastDumpStr)
 	if err != nil {
 		fail("parsing "+lastDumpStr, err)
 	}
+
 	return ghturl.ResolveReference(dumpurl).String()
 }
 
