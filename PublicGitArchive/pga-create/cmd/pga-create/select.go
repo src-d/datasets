@@ -1,200 +1,118 @@
 package main
 
 import (
-	"bufio"
 	"compress/gzip"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
-	"strings"
-	"time"
-
-	"github.com/briandowns/spinner"
-	"github.com/pkg/errors"
-	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 type selectCommand struct {
-	Stars           string `short:"s" long:"stars" default:"data/stars.gz" description:"Input path for the file with the numbers of stars per repository."`
-	Languages       string `short:"g" long:"languages" default:"data/languages.gz" description:"Input path for the gzipped file with the mapping between languages and repositories."`
-	Repositories    string `short:"r" long:"repositories" default:"data/repositories.gz" description:"Input path for the gzipped file with the repository names and identifiers."`
-	MinStars        int    `short:"m" long:"min-stars" description:"Minimum number of stars."`
-	Max             int    `short:"n" long:"max" default:"-1" description:"Maximum number of top-starred repositories to clone. -1 means unlimited. Language filter is applied before."`
-	FilterLanguages string `short:"l" long:"filter-languages" description:"Comma separated list of languages."`
-	UrlTemplate     string `long:"url-template" default:"git://github.com/%s.git" description:"Output URL printf template."`
+	Repositories string `short:"r" long:"repositories" default:"data/repositories.csv.gz" description:"Input path for the gzipped file with the repositories extracted information."`
+	IndexList    string `short:"i" long:"index-list" default:"data/repositories-index.csv.gz" description:"Output path for the list that should be given to the index command in case min stars filter applies."`
+	MinStars     int    `short:"m" long:"min-stars" default:"0" description:"Minimum number of stars. <1 means no filter"`
+	Max          int    `short:"n" long:"max" default:"-1" description:"Maximum number of top-starred repositories to clone. -1 means unlimited."`
+	URLTemplate  string `long:"url-template" default:"git://github.com/%s.git" description:"Output URL printf template."`
 }
 
 func (c *selectCommand) Execute(args []string) error {
-	var filteredLangsSplitted []string
-	if len(c.FilterLanguages) == 0 {
-		filteredLangsSplitted = []string{}
-	} else {
-		filteredLangsSplitted = strings.Split(c.FilterLanguages, ",")
-	}
-
 	selectRepos(selectionParameters{
-		StarsFile:         c.Stars,
-		LanguagesFile:     c.Languages,
-		ReposFile:         c.Repositories,
-		MinStars:          c.MinStars,
-		FilteredLanguages: filteredLangsSplitted,
-		TopN:              c.Max,
-		URLTemplate:       c.UrlTemplate,
+		ReposFile:   c.Repositories,
+		IndexList:   c.IndexList,
+		MinStars:    c.MinStars,
+		TopN:        c.Max,
+		URLTemplate: c.URLTemplate,
 	})
 
 	return nil
 }
 
 type selectionParameters struct {
-	StarsFile         string
-	LanguagesFile     string
-	ReposFile         string
-	FilteredLanguages []string
-	MinStars          int
-	TopN              int
-	URLTemplate       string
+	ReposFile   string
+	IndexList   string
+	MinStars    int
+	TopN        int
+	URLTemplate string
 }
 
-func selectRepos(parameters selectionParameters) {
-	spin := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
-	spin.Writer = os.Stderr
-	spin.Start()
-
-	var selectedRepos map[int]bool
-	if len(parameters.FilteredLanguages) > 0 {
-		spin.Suffix = " reading " + parameters.LanguagesFile
-		selectedRepos = filterLanguages(parameters.LanguagesFile, parameters.FilteredLanguages)
-	}
-	spin.Suffix = " reading " + parameters.StarsFile
-	selectedRepos = filterStars(
-		parameters.StarsFile, parameters.MinStars, parameters.TopN, selectedRepos)
-	spin.Stop()
-	bar := pb.New(len(selectedRepos))
-	bar.Output = os.Stderr
-	bar.ShowFinalTime = true
-	bar.ShowPercent = false
-	bar.ShowSpeed = false
-	bar.SetMaxWidth(80)
-	bar.Start()
-	defer bar.Finish()
-	f, err := os.Open(parameters.ReposFile)
+func selectRepos(params selectionParameters) {
+	f, err := os.Open(params.ReposFile)
 	if err != nil {
-		fail("opening repositories file "+parameters.ReposFile, err)
-	}
-	defer f.Close()
-	gzf, err := gzip.NewReader(f)
-	if err != nil {
-		fail("decompressing repositories file "+parameters.ReposFile, err)
-	}
-	defer gzf.Close()
-	scanner := bufio.NewScanner(gzf)
-	var count int
-	for scanner.Scan() {
-		var repoID int
-		var repoName string
-		line := scanner.Text()
-		n, err := fmt.Sscan(line, &repoID, &repoName)
-		if err != nil || n != 2 {
-			if err == nil {
-				err = errors.New("failed to parse " + line)
-			}
-			fail("parsing repositories file "+parameters.ReposFile, err)
-		}
-		if selectedRepos[repoID] {
-			count++
-			bar.Increment()
-			fmt.Fprintf(os.Stdout, parameters.URLTemplate+"\n", repoName)
-		}
-		if count >= len(selectedRepos) {
-			break
-		}
-	}
-
-	if sErr := scanner.Err(); sErr != nil {
-		fail("scanning repositories file "+parameters.ReposFile, sErr)
-	}
-}
-
-func filterStars(path string, minStars int, topN int, selectedRepos map[int]bool) map[int]bool {
-	f, err := os.Open(path)
-	if err != nil {
-		fail("opening stars file "+path, err)
+		fail("opening repositories file "+params.ReposFile, err)
 	}
 	defer f.Close()
 
 	gzf, err := gzip.NewReader(f)
 	if err != nil {
-		fail("decompressing stars file "+path, err)
+		fail("decompressing repositories file "+params.ReposFile, err)
 	}
 	defer gzf.Close()
 
-	scanner := bufio.NewScanner(gzf)
-	repos := map[int]bool{}
-	var stars int
-	for scanner.Scan() {
-		if len(repos) >= topN && topN > -1 {
-			fmt.Fprintf(os.Stderr, "\rEffective ★ : %d%s\n", stars, strings.Repeat(" ", 40))
-			break
-		}
-		line := scanner.Text()
-		var repo int
-		n, err := fmt.Sscan(line, &repo, &stars)
-		if err != nil || n != 2 {
-			if err == nil {
-				err = errors.New("failed to parse " + line)
-			}
-			fail("parsing stars file "+path, err)
-		}
-		if selectedRepos != nil && !selectedRepos[repo] {
-			continue
-		}
-		if stars >= minStars {
-			repos[repo] = true
-		} else {
-			// the file is sorted
-			break
-		}
-	}
-
-	if sErr := scanner.Err(); sErr != nil {
-		fail("scanning stars file "+path, sErr)
-	}
-
-	return repos
-}
-
-func filterLanguages(path string, languages []string) map[int]bool {
-	gzf, err := os.Open(path)
-	if err != nil {
-		fail("opening languages file "+path, err)
-	}
-	defer gzf.Close()
-	f, err := gzip.NewReader(gzf)
-	if err != nil {
-		fail("decompressing languages file "+path, err)
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	langMap := map[string]bool{}
-	for _, lang := range languages {
-		langMap[lang] = true
-	}
-	result := map[int]bool{}
-	active := false
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line[0] == '#' {
-			active = langMap[line[2:]]
-			continue
-		}
-		if !active {
-			continue
-		}
-		id, err := strconv.Atoi(line)
+	var idxw *csv.Writer
+	if params.MinStars > 0 {
+		idxList, err := os.Create(params.IndexList)
 		if err != nil {
-			fail("parsing languages file "+path+": "+line, err)
+			fail("creating file "+params.IndexList, err)
 		}
-		result[id] = true
+		defer func() {
+			if err := idxList.Close(); err != nil {
+				fail("closing output file "+params.IndexList, err)
+			}
+		}()
+
+		gzw := gzip.NewWriter(idxList)
+		defer func() {
+			if err := gzw.Close(); err != nil {
+				fail("closing output gz file "+params.IndexList, err)
+			}
+		}()
+
+		idxw = csv.NewWriter(gzw)
 	}
-	return result
+
+	r := csv.NewReader(gzf)
+	// read headers
+	_, err = r.Read()
+	if err != nil {
+		fail("parsing repositories file "+params.ReposFile, err)
+	}
+
+	var count int
+	for record, err := r.Read(); err != io.EOF; record, err = r.Read() {
+		if err != nil {
+			fail("parsing repositories file "+params.ReposFile, err)
+		}
+
+		if params.TopN > -1 && count >= params.TopN {
+			break
+		}
+
+		if params.MinStars > 0 {
+			stars, err := strconv.Atoi(record[1])
+			if err != nil {
+				fail("parsing stars field from repositories file "+params.ReposFile, err)
+			}
+
+			if stars < params.MinStars {
+				// the file is sorted
+				break
+			}
+
+			if err := idxw.Write(record); err != nil {
+				fail("writing repository to index list file", err)
+			}
+		}
+
+		fmt.Fprintf(os.Stdout, params.URLTemplate+"\n", record[0])
+		count++
+	}
+
+	if params.MinStars > 0 {
+		idxw.Flush()
+		if err := idxw.Error(); err != nil {
+			fail("writing repositories to index list file", err)
+		}
+	}
 }

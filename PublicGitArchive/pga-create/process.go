@@ -37,7 +37,7 @@ type repositoryData struct {
 	Branches    int
 	Forks       int
 	License     map[string]float32
-	Stars       int
+	Stars       uint32
 }
 
 func (r repositoryData) toRecord() []string {
@@ -135,7 +135,7 @@ func processRepos(
 	workers int,
 	txer repository.RootedTransactioner,
 	rs *model.RepositoryResultSet,
-	stars map[string]int,
+	stars map[string]uint32,
 ) <-chan *repositoryData {
 	logrus.WithField("workers", runtime.NumCPU()).Info("start processing repos")
 	start := time.Now()
@@ -194,14 +194,14 @@ type processor struct {
 	dbRepo *model.Repository
 	txer   repository.RootedTransactioner
 	locker *locker
-	stars  map[string]int
+	stars  map[string]uint32
 }
 
 func newProcessor(
 	dbRepo *model.Repository,
 	txer repository.RootedTransactioner,
 	locker *locker,
-	stars map[string]int,
+	stars map[string]uint32,
 ) *processor {
 	return &processor{
 		dbRepo: dbRepo,
@@ -412,14 +412,28 @@ func (p *processor) data() (*repositoryData, error) {
 			Warn("unable to get license for repository")
 	}
 
-	data.Stars = getStars(p.stars, data.URL)
+	repo := trimRepoURL(data.URL)
+	data.Stars = p.stars[repo]
 
 	return &data, nil
 }
 
-func getStars(stars map[string]int, url string) int {
-	repo := trimRepoURL(url)
-	return stars[repo]
+func trimRepoURL(url string) string {
+	const (
+		HTTPprefix = "https://github.com/"
+		SSHprefix  = "git://github.com/"
+		suffix     = ".git"
+	)
+
+	var repo string
+	if strings.HasPrefix(url, HTTPprefix) {
+		repo = strings.TrimPrefix(url, HTTPprefix)
+	} else if strings.HasPrefix(url, SSHprefix) {
+		repo = strings.TrimPrefix(url, SSHprefix)
+		repo = strings.TrimSuffix(repo, suffix)
+	}
+
+	return repo
 }
 
 func (p *processor) head() (*plumbing.Reference, error) {

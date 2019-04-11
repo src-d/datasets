@@ -3,136 +3,163 @@ package main
 import (
 	"archive/tar"
 	"bufio"
-	"compress/gzip"
+	"encoding/binary"
+	"encoding/csv"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
+	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/dustin/go-humanize"
-	"github.com/pkg/errors"
-	"golang.org/x/net/html"
-)
-
-const (
-	defaultGhtorrentMySQL = "http://ghtorrent-downloads.ewi.tudelft.nl/mysql/"
 )
 
 type discoverCommand struct {
-	URL          string `short:"l" long:"url" description:"Link to GHTorrent MySQL dump in tar.gz format. If empty (default), it find the most recent dump at GHTORRENT_MYSQL ?= http://ghtorrent-downloads.ewi.tudelft.nl/mysql/."`
-	Stdin        bool   `long:"stdin" description:"read GHTorrent MySQL dump from stdin"`
-	Stars        string `short:"s" long:"stars" default:"data/stars.gz" description:"Output path for the file with the numbers of stars per repository."`
-	Languages    string `short:"g" long:"languages" default:"data/languages.gz" description:"Output path for the gzipped file with the mapping between languages and repositories. May be empty - will be skipped then."`
-	Repositories string `short:"r" long:"repositories" default:"data/repositories.gz" description:"Output path for the gzipped file with the repository names and identifiers."`
+	dumpCommand
 }
 
 func (c *discoverCommand) Execute(args []string) error {
-	discoverRepos(&discoveryParameters{
-		Stdin:         c.Stdin,
-		URL:           c.URL,
-		StarsPath:     c.Stars,
-		LanguagesPath: c.Languages,
-		ReposPath:     c.Repositories,
-	})
+	processDump(c.Stdin, c.URL, c.Output, discover)
+	return nil
+}
+
+func discover(r *tar.Reader, w io.Writer) int64 {
+	const numTasks = 2
+	var (
+		processed int64
+		status    int
+		i         int
+		stars     map[uint32]uint32
+		reposPath string
+	)
+
+	for header, err := r.Next(); err != io.EOF; header, err = r.Next() {
+		if err != nil {
+			fail("reading tar.gz", err)
+		}
+
+		i++
+		processed += header.Size
+		isWatchers := strings.HasSuffix(header.Name, "watchers.csv")
+		isProjects := strings.HasSuffix(header.Name, "projects.csv")
+		mark := " "
+		if isWatchers || isProjects {
+			mark = ">"
+		}
+
+		strSize := humanize.Bytes(uint64(header.Size))
+		if strings.HasSuffix(strSize, " B") {
+			strSize += " "
+		}
+
+		if i == 1 {
+			fmt.Print("\r", strings.Repeat(" ", 80))
+		}
+
+		fmt.Printf("\r%s %2d  %7s  %s\n", mark, i, strSize, header.Name)
+		if isWatchers {
+			stars = reduceWatchers(r)
+			status++
+		} else if isProjects {
+			reposPath = reduceProjects(r)
+			status++
+		}
+
+		if status == numTasks {
+			break
+		}
+	}
+
+	if stars != nil && reposPath != "" {
+		writeData(w, stars, reposPath)
+	}
+
+	return processed
+}
+
+type repoTuple struct {
+	name string
+	num  uint32
+}
+
+func (t *repoTuple) encode(w io.Writer) error {
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(len(t.name)))
+	if _, err := w.Write(buf); err != nil {
+		return err
+	}
+
+	if _, err := w.Write([]byte(t.name)); err != nil {
+		return err
+	}
+
+	binary.LittleEndian.PutUint32(buf, t.num)
+	if _, err := w.Write(buf); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-type discoveryParameters struct {
-	Stdin         bool
-	URL           string
-	StarsPath     string
-	LanguagesPath string
-	ReposPath     string
-}
-
-type trackingReader struct {
-	RealReader io.ReadCloser
-	Callback   func(n int)
-}
-
-func (reader trackingReader) Read(p []byte) (n int, err error) {
-	n, err = reader.RealReader.Read(p)
-	reader.Callback(n)
-	return n, err
-}
-
-func (reader trackingReader) Close() error {
-	return reader.RealReader.Close()
-}
-
-func reduceWatchers(stream io.Reader) map[uint32]uint32 {
-	stars := map[uint32]uint32{}
-	scanner := bufio.NewScanner(stream)
-	for scanner.Scan() {
-		line := scanner.Text()
-		commaPos := strings.Index(line, ",")
-		projectID, err := strconv.Atoi(line[:commaPos])
-		if err != nil {
-			fail(fmt.Sprintf("parsing watchers project ID \"%s\"", line[:commaPos]), err)
-		}
-		stars[uint32(projectID)]++
+func (t *repoTuple) decode(r io.Reader) error {
+	buf := make([]byte, 4)
+	if _, err := r.Read(buf); err != nil {
+		return err
 	}
-	return stars
-}
 
-type watchPair struct {
-	Key, Value uint32
-}
-
-func writeWatchers(stars map[uint32]uint32, ids map[uint32]bool, path string) {
-	pairs := make([]watchPair, 0, len(stars))
-	for k, v := range stars {
-		if !ids[k] {
-			continue
-		}
-		pairs = append(pairs, watchPair{Key: k, Value: v})
+	size := binary.LittleEndian.Uint32(buf)
+	buf = make([]byte, size)
+	if _, err := r.Read(buf); err != nil {
+		return err
 	}
-	// Descending value order
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].Value > pairs[j].Value
-	})
-	f, err := os.Create(path)
+
+	t.name = string(buf)
+	buf = make([]byte, 4)
+	if _, err := r.Read(buf); err != nil {
+		return err
+	}
+
+	t.num = binary.LittleEndian.Uint32(buf)
+	return nil
+}
+
+type reposIter struct {
+	r io.ReadCloser
+}
+
+func newReposIter(path string) (*reposIter, error) {
+	f, err := os.Open(path)
 	if err != nil {
-		fail("creating watchers file "+path, err)
+		return nil, err
 	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			fail("closing watchers file", err)
-		}
-	}()
-	gzf := gzip.NewWriter(f)
-	defer gzf.Close()
-	for _, pair := range pairs {
-		_, err := fmt.Fprintf(gzf, "%d %d\n", pair.Key, pair.Value)
-		if err != nil {
-			fail("writing to watchers file", err)
-		}
-	}
+
+	return &reposIter{f}, nil
 }
 
-func writeProjects(stream io.Reader, path string) map[uint32]bool {
-	f, err := os.Create(path)
-	if err != nil {
-		fail("creating repositories file "+path, err)
+func (i *reposIter) Next() (*repoTuple, error) {
+	t := &repoTuple{}
+	if err := t.decode(i.r); err != nil {
+		return nil, err
 	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			fail("closing repositories file "+path, err)
-		}
-	}()
-	gzf := gzip.NewWriter(f)
-	defer gzf.Close()
+
+	return t, nil
+}
+
+func (i *reposIter) Close() error {
+	return i.r.Close()
+}
+
+func reduceProjects(stream io.Reader) string {
+	f, err := ioutil.TempFile("", "repos-id-")
+	if err != nil {
+		fail("reducing projects", err)
+	}
+
 	scanner := bufio.NewScanner(stream)
 	skip := false
-	ids := map[uint32]bool{}
+	tuple := &repoTuple{}
 	for scanner.Scan() {
 		line := scanner.Text()
 		skipThis := skip
@@ -154,230 +181,168 @@ func writeProjects(stream io.Reader, path string) map[uint32]bool {
 		if commaPos < 0 {
 			fail("parsing projects "+line, fmt.Errorf("comma not found"))
 		}
+
 		projectID, err := strconv.Atoi(line[:commaPos])
 		if err != nil {
 			fail(fmt.Sprintf("parsing projects project ID \"%s\"", line[:commaPos]), err)
 		}
+
 		if projectID < 0 {
 			continue
 		}
+
 		line = line[commaPos+1+30:] // +"https://api.github.com/repos/
 		commaPos = strings.Index(line, "\"")
 		projectName := line[:commaPos]
-		ids[uint32(projectID)] = true
-		_, err = fmt.Fprintf(gzf, "%d %s\n", projectID, projectName)
-		if err != nil {
-			fail("writing repositories file "+path, err)
+
+		tuple.name = projectName
+		tuple.num = uint32(projectID)
+		if err := tuple.encode(f); err != nil {
+			fail("reducing projects", err)
 		}
 	}
-	return ids
+
+	if err := f.Close(); err != nil {
+		fail("reducing projects", err)
+	}
+
+	reposPath, err := dedupRepos(f.Name())
+	if err != nil {
+		fail("reducing projects: deduplication", err)
+	}
+
+	if err := os.Remove(f.Name()); err != nil {
+		fail("reducing projects", err)
+	}
+
+	return reposPath
 }
 
-func writeLanguages(stream io.Reader, path string) {
-	f, err := os.Create(path)
-	defer f.Close()
+func dedupRepos(path string) (string, error) {
+	// note that a repository can be duplicated in the dump with
+	// different ids because of an update:
+	// 28974589,"https://api.github.com/repos/travisjeffery/ecs-deploy",4141,"ecs-update","Update ECS service to a Docker image.","Go","2015-11-19 08:18:23",\N,0,"2016-03-05 13:26:25",\N
+	// 29621508,"https://api.github.com/repos/travisjeffery/ecs-deploy",4141,"ecs-deploy","Update ECS service to a Docker image.","Go","2015-11-19 08:18:23",\N,0,"2019-02-16 18:02:27",\N
+	// the entry with greater id is the last update, since the
+	// entries in the projects.csv file are sorted by id then the
+	// last seen id for a certain project name is the correct one.
+
+	w, err := ioutil.TempFile("", "dedup-repos-id-")
 	if err != nil {
-		fail("creating languages file "+path, err)
+		return "", err
 	}
-	gzf := gzip.NewWriter(f)
-	defer gzf.Close()
+
+	iter, err := newReposIter(path)
+	if err != nil {
+		return "", err
+	}
+
+	ids := map[string]uint32{}
+	for tuple, err := iter.Next(); err != io.EOF; tuple, err = iter.Next() {
+		if err != nil {
+			return "", err
+		}
+
+		ids[tuple.name] = tuple.num
+	}
+
+	if err := iter.Close(); err != nil {
+		return "", err
+	}
+
+	t := &repoTuple{}
+	for t.name, t.num = range ids {
+		if err := t.encode(w); err != nil {
+			return "", err
+		}
+	}
+
+	if err := w.Close(); err != nil {
+		return "", nil
+	}
+
+	return w.Name(), nil
+}
+
+func reduceWatchers(stream io.Reader) map[uint32]uint32 {
+	stars := map[uint32]uint32{}
 	scanner := bufio.NewScanner(stream)
-	langs := map[string]map[int]bool{}
 	for scanner.Scan() {
 		line := scanner.Text()
-		fields := strings.SplitN(line, ",", 3)
-		projectID, err := strconv.Atoi(fields[0])
+		commaPos := strings.Index(line, ",")
+		projectID, err := strconv.Atoi(line[:commaPos])
 		if err != nil {
-			fail("parsing project_languages.csv: "+line, err)
+			fail(fmt.Sprintf("parsing watchers project ID \"%s\"", line[:commaPos]), err)
 		}
-		lang := fields[1][1 : len(fields[1])-1]
-		projects := langs[lang]
-		if projects == nil {
-			projects = map[int]bool{}
-			langs[lang] = projects
-		}
-		projects[projectID] = true
+
+		stars[uint32(projectID)]++
 	}
-	langList := make([]string, len(langs))
-	{
-		i := 0
-		for lang := range langs {
-			langList[i] = lang
-			i++
-		}
-	}
-	sort.Strings(langList)
-	for _, lang := range langList {
-		projects := langs[lang]
-		projectsList := make([]int, len(projects))
-		{
-			i := 0
-			for id := range projects {
-				projectsList[i] = id
-				i++
-			}
-		}
-		sort.Ints(projectsList)
-		fmt.Fprintf(gzf, "# %s\n", lang)
-		for _, id := range projectsList {
-			fmt.Fprintln(gzf, id)
-		}
-	}
+
+	return stars
 }
 
-func findMostRecentMySQLDump(root string) string {
-	ghturl, err := url.Parse(root)
+func writeData(w io.Writer, stars map[uint32]uint32, reposPath string) {
+	ri, err := newReposIter(reposPath)
 	if err != nil {
-		fail("parsing "+root, err)
+		fail("writing to repositories file", err)
 	}
-	response, err := http.Get(ghturl.String())
-	if err != nil {
-		fail("connecting to "+ghturl.String(), err)
-	}
-	defer response.Body.Close()
-	tokenizer := html.NewTokenizer(response.Body)
-	dumps := []string{}
-	for token := tokenizer.Next(); token != html.ErrorToken; token = tokenizer.Next() {
-		if token == html.StartTagToken {
-			tag := tokenizer.Token()
-			if tag.Data == "a" {
-				for _, attr := range tag.Attr {
-					if attr.Key == "href" {
-						dumps = append(dumps, attr.Val)
-						break
-					}
-				}
-			}
+
+	tupStars := make([]*repoTuple, 0, len(stars))
+	noStars := []string{}
+	for tupID, err := ri.Next(); err != io.EOF; tupID, err = ri.Next() {
+		if err != nil {
+			fail("writing to repositories file", err)
 		}
-	}
-	if len(dumps) == 0 {
-		fail("getting the list of available dumps", errors.New("no dumps found"))
-	}
-	sort.Strings(dumps)
-	lastDumpStr := dumps[len(dumps)-1]
-	dumpurl, err := url.Parse(lastDumpStr)
-	if err != nil {
-		fail("parsing "+lastDumpStr, err)
-	}
-	return ghturl.ResolveReference(dumpurl).String()
-}
 
-func discoverRepos(params *discoveryParameters) {
-	startTime := time.Now()
-
-	for _, p := range []string{
-		params.ReposPath,
-		params.StarsPath,
-		params.LanguagesPath} {
-		if p == "" {
+		nstars, ok := stars[tupID.num]
+		if !ok {
+			noStars = append(noStars, tupID.name)
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(p), os.FileMode(0755)); err != nil {
-			fail("could not create directory", err)
+		tupStars = append(tupStars, &repoTuple{
+			name: tupID.name,
+			num:  nstars,
+		})
+	}
+
+	if err := ri.Close(); err != nil {
+		fail("writing to repositories file", err)
+	}
+
+	if err := os.Remove(reposPath); err != nil {
+		fail("writing to repositories file", err)
+	}
+
+	// Descending value order
+	sort.Slice(tupStars, func(i, j int) bool {
+		return tupStars[i].num > tupStars[j].num
+	})
+
+	cw := csv.NewWriter(w)
+	headers := []string{"repository", "stars"}
+	if err := cw.Write(headers); err != nil {
+		fail("writing to repositories file", err)
+	}
+
+	for _, t := range tupStars {
+		record := []string{t.name, fmt.Sprintf("%d", t.num)}
+		if err := cw.Write(record); err != nil {
+			fail("writing to repositories file", err)
 		}
 	}
 
-	spin := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
-	spin.Start()
-	defer spin.Stop()
+	tupStars = nil
 
-	inputFile := dumpReader(params.Stdin, params.URL, spin)
-	defer inputFile.Close()
-
-	var totalRead int64
-	inputFile = trackingReader{RealReader: inputFile, Callback: func(n int) {
-		totalRead += int64(n)
-		if totalRead%3 == 0 {
-			// supposing that mod 3 is random, this is a quick and dirty way to (/ 3) updates.
-			spin.Suffix = fmt.Sprintf(" %s", humanize.Bytes(uint64(totalRead)))
-		}
-	}}
-	gzf, err := gzip.NewReader(inputFile)
-	if err != nil {
-		fail("opening gzip stream", err)
-	}
-	defer gzf.Close()
-	tarf := tar.NewReader(gzf)
-	processed := int64(0)
-	numTasks := 3
-	if params.LanguagesPath == "" {
-		numTasks--
-	}
-	status := 0
-	i := 0
-	var stars map[uint32]uint32
-	var ids map[uint32]bool
-	for header, err := tarf.Next(); err != io.EOF; header, err = tarf.Next() {
-		if err != nil {
-			fail("reading tar.gz", err)
-		}
-		i++
-		processed += header.Size
-		isWatchers := strings.HasSuffix(header.Name, "watchers.csv")
-		isProjects := strings.HasSuffix(header.Name, "projects.csv")
-		isLanguages := strings.HasSuffix(header.Name, "project_languages.csv")
-		mark := " "
-		if isWatchers || isProjects || isLanguages {
-			mark = ">"
-		}
-		strSize := humanize.Bytes(uint64(header.Size))
-		if strings.HasSuffix(strSize, " B") {
-			strSize += " "
-		}
-		if i == 1 {
-			fmt.Print("\r", strings.Repeat(" ", 80))
-		}
-		fmt.Printf("\r%s %2d  %7s  %s\n", mark, i, strSize, header.Name)
-		if isWatchers {
-			stars = reduceWatchers(tarf)
-			status++
-		} else if isProjects {
-			ids = writeProjects(tarf, params.ReposPath)
-			status++
-		} else if isLanguages && params.LanguagesPath != "" {
-			writeLanguages(tarf, params.LanguagesPath)
-			status++
-		}
-		if stars != nil && ids != nil {
-			writeWatchers(stars, ids, params.StarsPath)
-		}
-		if status == numTasks {
-			break
-		}
-	}
-	fmt.Printf("\nRead      %s\nProcessed %s\nElapsed   %s\n",
-		humanize.Bytes(uint64(totalRead)), humanize.Bytes(uint64(processed)), time.Since(startTime))
-}
-
-func dumpReader(stdin bool, url string, spin *spinner.Spinner) io.ReadCloser {
-	if stdin {
-		fi, err := os.Stdin.Stat()
-		if err != nil {
-			fail("checking stat on stdin", err)
-		}
-
-		if fi.Mode()&os.ModeNamedPipe != 0 {
-			return os.Stdin
+	for _, name := range noStars {
+		record := []string{name, "0"}
+		if err := cw.Write(record); err != nil {
+			fail("writing to repositories file", err)
 		}
 	}
 
-	if url == "" {
-		envURL := os.Getenv("GHTORRENT_MYSQL")
-		if envURL == "" {
-			envURL = defaultGhtorrentMySQL
-		}
-
-		spin.Suffix = " " + envURL
-		url = findMostRecentMySQLDump(envURL)
+	cw.Flush()
+	if err := cw.Error(); err != nil {
+		fail("writing to repositories file", err)
 	}
-
-	fmt.Printf("\r>> %s\n", url)
-	spin.Suffix = " connecting..."
-	response, err := http.Get(url)
-	if err != nil {
-		fail("starting the download of "+url, err)
-	}
-
-	return response.Body
 }
