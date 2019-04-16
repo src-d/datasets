@@ -16,6 +16,7 @@ import (
 
 	"github.com/erizocosmico/gocloc"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/enry.v1"
@@ -485,17 +486,18 @@ func sivaFiles(inits map[model.SHA1]struct{}) []string {
 var regSivaDir = regexp.MustCompile(`\b([0-9a-f]{40})_[0-9]{19}\b`)
 
 func sivaSize(init string) (int64, error) {
-	info, err := ioutil.ReadDir("/tmp/sourced")
+	tmpFS := core.TemporaryFilesystem()
+	info, err := tmpFS.ReadDir("")
 	if err != nil {
 		return -1, err
 	}
 
 	if len(info) != 1 || !info[0].IsDir() {
-		return -1, fmt.Errorf("/tmp/sourced directory wasn't in a clean status")
+		return -1, fmt.Errorf("tmp directory wasn't in a clean status")
 	}
 
-	tmp := filepath.Join("/tmp/sourced", info[0].Name(), "transactioner")
-	info, err = ioutil.ReadDir(tmp)
+	tmp := filepath.Join(info[0].Name(), "transactioner")
+	info, err = tmpFS.ReadDir(tmp)
 	if err != nil {
 		return -1, err
 	}
@@ -529,7 +531,7 @@ func sivaSize(init string) (int64, error) {
 
 	var size int64 = -1
 	for _, path := range paths {
-		fi, err := os.Stat(path)
+		fi, err := tmpFS.Stat(path)
 		if err != nil {
 			if os.IsNotExist(err) {
 				// a previous found siva file generated from
