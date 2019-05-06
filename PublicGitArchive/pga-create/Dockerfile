@@ -1,7 +1,7 @@
 #==========================
 # Stage 1: build pga-create
 #==========================
-FROM golang:1.12.3-alpine3.9 AS builder
+FROM golang:1.12.4-alpine3.9 AS builder
 
 RUN apk add --no-cache dumb-init=1.2.2-r1 git
 
@@ -9,6 +9,7 @@ RUN apk add --no-cache dumb-init=1.2.2-r1 git
 ENV PGA_CREATE_REPO=github.com/src-d/datasets/PublicGitArchive/pga-create
 ENV PGA_CREATE_PATH=$GOPATH/src/$PGA_CREATE_REPO
 COPY . ${PGA_CREATE_PATH}
+
 RUN go build -tags norwfs -o /bin/pga-create ${PGA_CREATE_PATH}/cmd/pga-create
 
 RUN cp ${PGA_CREATE_PATH}/select-repos.sh /bin/select-repos && chmod +x /bin/select-repos
@@ -17,7 +18,7 @@ RUN cp ${PGA_CREATE_PATH}/index-repos.sh /bin/index-repos && chmod +x /bin/index
 #=====================================================
 # Stage 2: copy binaries and set environment variables
 #=====================================================
-FROM alpine:3.9.2
+FROM alpine:3.9.3
 
 COPY --from=builder /bin/pga-create /bin/*-repos /usr/bin/dumb-init /bin/
 

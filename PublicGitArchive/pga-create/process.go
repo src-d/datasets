@@ -16,6 +16,7 @@ import (
 
 	"github.com/erizocosmico/gocloc"
 	"github.com/sirupsen/logrus"
+
 	"gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
@@ -486,6 +487,8 @@ func sivaFiles(inits map[model.SHA1]struct{}) []string {
 var regSivaDir = regexp.MustCompile(`\b([0-9a-f]{40})_[0-9]{19}\b`)
 
 func sivaSize(init string) (int64, error) {
+	// siva's temporary files path looks like:
+	// /tmp/sourced/123456789/transactioner/7a80dfe1684664cefd2923bdbb329dcb9a48dc4f_1551878586555302343/siva
 	tmpFS := core.TemporaryFilesystem()
 	info, err := tmpFS.ReadDir("")
 	if err != nil {
@@ -496,7 +499,7 @@ func sivaSize(init string) (int64, error) {
 		return -1, fmt.Errorf("tmp directory wasn't in a clean status")
 	}
 
-	tmp := filepath.Join(info[0].Name(), "transactioner")
+	tmp := info[0].Name()
 	info, err = tmpFS.ReadDir(tmp)
 	if err != nil {
 		return -1, err
