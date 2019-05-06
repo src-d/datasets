@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -339,6 +340,7 @@ func (p *processor) process() (*repositoryData, error) {
 	data.SivaFiles = sivaFiles(inits)
 	data.Size = sumOfSivaSizes
 
+	debug.FreeOSMemory()
 	return data, nil
 }
 
