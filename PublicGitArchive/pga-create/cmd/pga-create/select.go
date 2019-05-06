@@ -70,6 +70,9 @@ func selectRepos(params selectionParameters) {
 		}()
 
 		idxw = csv.NewWriter(gzw)
+		if err := writeCSVHeaders(idxw); err != nil {
+			fail("writing csv headers", err)
+		}
 	}
 
 	r := csv.NewReader(gzf)

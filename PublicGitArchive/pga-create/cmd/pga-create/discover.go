@@ -320,8 +320,7 @@ func writeData(w io.Writer, stars map[uint32]uint32, reposPath string) {
 	})
 
 	cw := csv.NewWriter(w)
-	headers := []string{"repository", "stars"}
-	if err := cw.Write(headers); err != nil {
+	if err := writeCSVHeaders(cw); err != nil {
 		fail("writing to repositories file", err)
 	}
 
@@ -345,4 +344,9 @@ func writeData(w io.Writer, stars map[uint32]uint32, reposPath string) {
 	if err := cw.Error(); err != nil {
 		fail("writing to repositories file", err)
 	}
+}
+
+func writeCSVHeaders(w *csv.Writer) error {
+	headers := []string{"repository", "stars"}
+	return w.Write(headers)
 }
