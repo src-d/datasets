@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -139,7 +138,7 @@ func processRepos(
 	rs *model.RepositoryResultSet,
 	stars map[string]uint32,
 ) <-chan *repositoryData {
-	logrus.WithField("workers", runtime.NumCPU()).Info("start processing repos")
+	logrus.WithField("workers", workers).Info("start processing repos")
 	start := time.Now()
 	defer func() {
 		logrus.WithField("elapsed", time.Since(start)).Debug("finished processing repos")
@@ -240,26 +239,33 @@ func (p *processor) process() (*repositoryData, error) {
 
 	mut := p.locker.lock(head.String())
 	mut.Lock()
-	tx, err := p.txer.Begin(context.TODO(), plumbing.NewHash(head.String()))
-	if err != nil {
-		mut.Unlock()
-		return nil, fmt.Errorf("can't start transaction: %s", err)
-	}
 
-	p.repo, err = git.Open(tx.Storer(), nil)
-	if err != nil {
-		mut.Unlock()
-		return nil, fmt.Errorf("can't open git repo: %s", err)
-	}
+	var data *repositoryData
+	err := func() error {
+		defer mut.Unlock()
 
-	data, err := p.data()
-	if err != nil {
-		mut.Unlock()
-		return nil, fmt.Errorf("unable to get repo data: %s", err)
-	}
+		tx, err := p.txer.Begin(context.TODO(), plumbing.NewHash(head.String()))
+		if err != nil {
+			return fmt.Errorf("can't start transaction: %s", err)
+		}
+		defer tx.Rollback()
 
-	mut.Unlock()
-	_ = tx.Rollback()
+		p.repo, err = git.Open(tx.Storer(), nil)
+		if err != nil {
+			return fmt.Errorf("can't open git repo: %s", err)
+		}
+
+		data, err = p.data()
+		if err != nil {
+			return fmt.Errorf("unable to get repo data: %s", err)
+		}
+
+		return nil
+	}()
+
+	if err != nil {
+		return nil, err
+	}
 
 	log = log.WithField("url", data.URL)
 	var sumOfSivaSizes int64
