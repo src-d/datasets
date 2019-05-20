@@ -36,7 +36,7 @@ func readSiva(path string) (map[string]*object.Commit, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to open the Git repository from Siva file %s", path)
 	}
-	log.Print("Reading the references, this make take some time... ")
+	log.Print("Reading the references, this may take some time... ")
 	refs, err := repo.References()
 	log.Println("done.")
 	if err != nil {
