@@ -45,7 +45,7 @@ cat images.txt | /path/to/skopeo/skopeo inspect
 
 ### Limitations
 
-* Only amd64, Linux images were considered.
+* Only i386, amd64, arm and arm64 Linux images were considered.
 * Custom image registries were not processed, e.g. [microsoft-dotnet-core-samples](https://hub.docker.com/_/microsoft-dotnet-core-samples/).
 
 ### License
