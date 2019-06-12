@@ -14,9 +14,7 @@ HEADERS = {
     "Accept-Encoding": "gzip, deflate, br",
     "Referer": "https://hub.docker.com/search/?type=image",
     "Search-Version": "v3",
-    "X-CSRFToken": os.environ['DOCKERHUB_CSRF_TOKEN'],
     "Connection": "keep-alive",
-    "Cookie": os.environ['DOCKERHUB_COOKIE']
 }
 
 CHARS = string.ascii_letters + string.digits
