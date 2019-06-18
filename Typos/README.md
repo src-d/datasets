@@ -1,4 +1,4 @@
-Typos in Identifiers ![size 1.4GB](https://img.shields.io/badge/size-1.4GB-green.svg)
+Typos in Identifiers ![size 1MB](https://img.shields.io/badge/size-1MB-green.svg)
 ====================
 
 [Download.](typos.csv)
