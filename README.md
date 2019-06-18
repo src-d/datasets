@@ -48,6 +48,11 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 1.4GB
 - Description: 1.46 million Docker image configuration and manifest files on [DockerHub](https://hub.docker.com/) fetched in June 2019.
 
+### Typos
+- [Typos](Typos)
+- Size: 1MB
+- Description: 7375 typos in source code identifier names found in GitHub repositories.
+
 ## Contributions
 
 Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
