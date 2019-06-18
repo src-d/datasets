@@ -1,0 +1,44 @@
+from tqdm import tqdm 
+ 
+%cd /home/vadim 
+!rm -rf boilerplate 
+!mkdir -p boilerplate 
+!ln -s ../hercules.bin boilerplate/hercules.bin 
+with open("tasks1_tail.txt") as fin: 
+    %cd boilerplate 
+    rid = "" 
+    lines = fin.readlines() 
+    for seq, line in tqdm(enumerate(lines), total=len(lines)): 
+        commit, repo = line.strip().split(" ") 
+        if "llvm" in repo or "linux" in repo: 
+            continue 
+        new_rid = repo.replace("/", "@") 
+        if new_rid != rid: 
+            !rm -rf $rid 
+        rid = new_rid 
+        !GIT_TERMINAL_PROMPT=0 git clone --bare https://github.com/$repo $rid 
+        if not os.path.exists(rid): 
+            print("failed to clone") 
+            continue 
+        %cd $rid 
+        try: 
+            parents = !git rev-list --parents -n 1 $commit 
+            parent = parents[0].split(" ")[1] 
+        except: 
+            continue 
+        finally: 
+            %cd .. 
+        if len(parent) != 40: 
+            print("failed to get the parent from", parents) 
+            continue 
+        with open("commits.txt", "w") as fout: 
+            print(commit, file=fout) 
+            print(parent, file=fout) 
+        result = !../hercules --typos-dataset --feature uast --commits commits.txt $rid 
+        print(result[:10]) 
+        if result and result[-1] != "TyposDataset:" and "hercules:" in result: 
+            with open("%s_%d.yaml" % (rid, seq), "w") as fout: 
+                ri = result.index("hercules:") 
+                print("\n".join(result[ri:]), file=fout) 
+    !rm -rf $rid 
+    %cd ..
