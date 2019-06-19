@@ -9,8 +9,7 @@ DockerHub Metadata ![size 1.4GB](https://img.shields.io/badge/size-1.4GB-green.s
 A manifest points to the layers of an image and its configuration. A configuration carries all the
 metadata: architecture, OS, environment variables, entry point, default command, etc., including the layer creation history.
 The latter allows to reconstruct [`docker history`](https://docs.docker.com/engine/reference/commandline/history/)
-without having to pull images. As a whole, the provided information can be used to recover Dockerfile-s
-for any image on DockerHub which has it.
+without having to pull images.
 
 The dataset consists of 2 files:
 
