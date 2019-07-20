@@ -151,6 +151,7 @@ func processRepository(
 	}
 	wg := sync.WaitGroup{}
 	uasts := map[string]map[string][]byte{}
+	headLock := sync.Mutex{}
 	for headIndex, head := range heads {
 		headUasts := map[string][]byte{}
 		uasts[names[headIndex]] = headUasts
@@ -189,7 +190,9 @@ func processRepository(
 				defer wg.Done()
 				uast, err := parseFile(bblfshEndpoint, fileName, contents)
 				if err == nil {
+					headLock.Lock()
 					headUasts[file.Name] = uast
+					headLock.Unlock()
 				}
 			}(fmt.Sprintf("%s/%s/%s", rid, names[headIndex], file.Name), contents)
 			*filesProcessed++
