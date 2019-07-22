@@ -186,7 +186,7 @@ func processRepository(
 				}
 			}
 			wg.Add(1)
-			go func(fileName string, contents []byte) {
+			go func(fileName string, contents []byte, headUasts map[string][]byte) {
 				defer wg.Done()
 				uast, err := parseFile(bblfshEndpoint, fileName, contents)
 				if err == nil {
@@ -194,7 +194,7 @@ func processRepository(
 					headUasts[file.Name] = uast
 					headLock.Unlock()
 				}
-			}(fmt.Sprintf("%s/%s/%s", rid, names[headIndex], file.Name), contents)
+			}(fmt.Sprintf("%s/%s/%s", rid, names[headIndex], file.Name), contents, headUasts)
 			*filesProcessed++
 			bar.Postfix(fmt.Sprintf(" %s/%s %d", rid, names[headIndex], *filesProcessed))
 			return nil
