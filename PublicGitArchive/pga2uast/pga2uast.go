@@ -171,7 +171,7 @@ func processRepository(
 	}()
 	defer bar.Increment()
 	rid := r.ID().String()
-	if _, err := os.Stat(filepath.Join(outputDirectory, rid) + "." + outputFormat); err == nil {
+	if _, err := os.Stat(getOutputFileName(outputDirectory, rid, outputFormat)); err == nil {
 		return
 	}
 	heads, names, err := listHeads(r.R())
@@ -285,6 +285,10 @@ type parquetItem struct {
 	UAST string `parquet:"name=uast, type=BYTE_ARRAY"`
 }
 
+func getOutputFileName(outputDirectory, repo, outputFormat string) string {
+	return filepath.Join(outputDirectory, repo) + "." + outputFormat
+}
+
 func writeOutput(repo string, uasts map[string]map[string][]byte,
 	outputDirectory, outputFormat string) (err error) {
 
@@ -301,7 +305,7 @@ func writeOutput(repo string, uasts map[string]map[string][]byte,
 	if empty {
 		return nil
 	}
-	fileName := filepath.Join(outputDirectory, repo) + "." + outputFormat
+	fileName := getOutputFileName(outputDirectory, repo, outputFormat)
 	var file *os.File
 	file, err = os.Create(fileName)
 	if err != nil {
