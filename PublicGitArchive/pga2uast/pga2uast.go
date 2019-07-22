@@ -3,8 +3,10 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"compress/zlib"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -30,7 +32,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/utils/ioutil"
+	ggio "gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
 
 func parseFlags() (
@@ -104,7 +106,7 @@ func readGitFile(f *object.File) (content []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer ioutil.CheckClose(reader, &err)
+	defer ggio.CheckClose(reader, &err)
 
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(reader); err != nil {
@@ -129,6 +131,34 @@ func createProgressBar(repos borges.RepositoryIterator) *progress.ProgressBar {
 		log.Fatalf("failed to iterate repositories: %v", err)
 	}
 	return bar
+}
+
+func compressBytes(buffer []byte) []byte {
+	output := &bytes.Buffer{}
+	zw := zlib.NewWriter(output)
+	_, err := zw.Write(buffer)
+	if err != nil {
+		log.Panicf("compress/write: %v", err)
+	}
+	err = zw.Close()
+	if err != nil {
+		log.Panicf("compress/close: %v", err)
+	}
+	return output.Bytes()
+}
+
+func decompressBytes(buffer []byte) []byte {
+	input := bytes.NewBuffer(buffer)
+	zr, err := zlib.NewReader(input)
+	if err != nil {
+		log.Panicf("decompress/open: %v", err)
+	}
+	defer zr.Close()
+	output, err := ioutil.ReadAll(zr)
+	if err != nil {
+		log.Panicf("decompress/read: %v", err)
+	}
+	return output
 }
 
 func processRepository(
@@ -188,13 +218,13 @@ func processRepository(
 			wg.Add(1)
 			go func(fileName string, contents []byte, headUasts map[string][]byte) {
 				defer wg.Done()
-				uast, err := parseFile(bblfshEndpoint, fileName, contents)
+				uast, err := parseFile(bblfshEndpoint, fileName, decompressBytes(contents))
 				if err == nil {
 					headLock.Lock()
-					headUasts[file.Name] = uast
+					headUasts[file.Name] = compressBytes(uast)
 					headLock.Unlock()
 				}
-			}(fmt.Sprintf("%s/%s/%s", rid, names[headIndex], file.Name), contents, headUasts)
+			}(fmt.Sprintf("%s/%s/%s", rid, names[headIndex], file.Name), compressBytes(contents), headUasts)
 			*filesProcessed++
 			bar.Postfix(fmt.Sprintf(" %s/%s %d", rid, names[headIndex], *filesProcessed))
 			return nil
@@ -289,8 +319,9 @@ func writeOutput(repo string, uasts map[string]map[string][]byte,
 		err = writeParquet(uasts, file)
 		return
 	} else {
-		panic(fmt.Sprintf("unknown output format %s", outputFormat))
+		log.Panicf("unknown output format %s", outputFormat)
 	}
+	return nil
 }
 
 func writeZIP(uasts map[string]map[string][]byte, file *os.File) (err error) {
@@ -307,10 +338,11 @@ func writeZIP(uasts map[string]map[string][]byte, file *os.File) (err error) {
 				err = zerr
 				return
 			}
-			_, err = uw.Write(uast)
+			_, err = uw.Write(decompressBytes(uast))
 			if err != nil {
 				return
 			}
+			v[sk] = nil  // free memory
 		}
 	}
 	return
@@ -325,9 +357,10 @@ func writeParquet(uasts map[string]map[string][]byte, file *os.File) (err error)
 	pw.CompressionType = parquet.CompressionCodec_GZIP
 	for k, v := range uasts {
 		for sk, uast := range v {
-			if err = pw.Write(parquetItem{k, sk, string(uast)}); err != nil {
+			if err = pw.Write(parquetItem{k, sk, string(decompressBytes(uast))}); err != nil {
 				return
 			}
+			v[sk] = nil  // free memory
 		}
 	}
 	err = pw.WriteStop()
