@@ -189,7 +189,7 @@ func processRepository(
 	defer bar.Increment()
 	rid := r.ID().String()
 
-	if blacklist, err := ioutil.ReadFile(BlacklistFileName); err != nil {
+	if blacklist, err := ioutil.ReadFile(BlacklistFileName); err == nil {
 		for _, black := range strings.Split(string(blacklist), "\n") {
 			if black == rid {
 				log.Printf("skipped %s because it is blacklisted", rid)
@@ -450,6 +450,9 @@ func becomeMonitor() {
 		}
 		log.Printf("blacklisting %s", string(task))
 		blacklist, _ := ioutil.ReadFile(BlacklistFileName)
+		if len(blacklist) > 0 {
+			blacklist = append(blacklist, byte('\n'))
+		}
 		blacklist = append(blacklist, task...)
 		if err = ioutil.WriteFile(BlacklistFileName, blacklist, 0666); err != nil {
 			log.Fatalf("cannot write %s: %v", BlacklistFileName, err)
