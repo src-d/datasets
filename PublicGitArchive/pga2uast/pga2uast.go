@@ -38,7 +38,7 @@ import (
 
 func parseFlags() (
 	inputDirectory, bblfshEndpoint, outputDirectory, outputFormat string,
-	languages map[string]struct{}, workers int, monitor bool) {
+	languages map[string]struct{}, workers int, monitor bool, timeout time.Duration) {
 
 	var langsList []string
 	pflag.StringVarP(&outputDirectory, "output", "o", "uast", "Output directory where to save the results.")
@@ -51,6 +51,7 @@ func parseFlags() (
 	pflag.IntVarP(&workers, "workers", "n", runtime.NumCPU()*2, "Number of goroutines to parse UASTs.")
 	pflag.BoolVarP(&monitor, "monitor", "m", false, "Activate the advanced detection of \"bad\" " +
 		"repositories and automatic restart on failures.")
+	pflag.DurationVarP(&timeout, "timeout", "t", time.Minute, "Bablefish parse timeout.")
 	pflag.Parse()
 	if pflag.NArg() != 1 {
 		log.Fatalf("usage: pga2uast /path/to/directory/with/siva")
@@ -179,7 +180,8 @@ func getCurrentTaskFilePath() string {
 }
 
 func processRepository(
-	r borges.Repository, bblfshEndpoint, outputDirectory, outputFormat string, languages map[string]struct{},
+	r borges.Repository, bblfshEndpoint, outputDirectory, outputFormat string,
+	languages map[string]struct{}, timeout time.Duration,
 	workers int, bar *progress.ProgressBar, filesProcessed *int) (elapsed time.Duration) {
 
 	startTime := time.Now()
@@ -225,7 +227,8 @@ func processRepository(
 				if !more {
 					break
 				}
-				uast, err := parseFile(client, task.FullPath, decompressBytes(task.CompressedContents))
+				uast, err := parseFile(
+					client, task.FullPath, decompressBytes(task.CompressedContents), timeout)
 				if err == nil {
 					headLock.Lock()
 					task.HeadUasts[task.FileName] = compressBytes(uast)
@@ -308,8 +311,8 @@ func printElapsedTimes(times map[string]time.Duration) {
 	}
 }
 
-func parseFile(client *bblfsh.Client, path string, contents []byte) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+func parseFile(client *bblfsh.Client, path string, contents []byte, timeout time.Duration) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	request := client.NewParseRequest().
 		Content(string(contents)).Filename(path).Mode(bblfsh.Semantic).Context(ctx)
@@ -461,7 +464,8 @@ func becomeMonitor() {
 }
 
 func main() {
-	inputDirectory, bblfshEndpoint, outputDirectory, outputFormat, languages, workers, monitor := parseFlags()
+	inputDirectory, bblfshEndpoint, outputDirectory, outputFormat, languages, workers, monitor,
+		timeout := parseFlags()
 	if monitor {
 		becomeMonitor()
 		return
@@ -483,7 +487,8 @@ func main() {
 	defer printElapsedTimes(times)
 	err = repos.ForEach(func(r borges.Repository) error {
 		times[r.ID().String()] = processRepository(
-			r, bblfshEndpoint, outputDirectory, outputFormat, languages, workers, bar, &filesProcessed)
+			r, bblfshEndpoint, outputDirectory, outputFormat, languages, timeout, workers, bar,
+			&filesProcessed)
 		return nil
 	})
 	if err != nil {
