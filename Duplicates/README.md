@@ -42,3 +42,16 @@ print(len(ds.assignments))
 print(len(ds.pairs))
 ```
 
+### Origin
+
+The choice of the files was designed in the included [notebooks](notebooks).
+
+### Limitations
+
+There were ~4 active human reviewers who did the labeling, they were from
+the same company, and talked to each other. Hence there can be bias in the labels.
+Code duplication is subjective, anyway.
+
+### License
+
+Code: MIT. Labels: Open Data Commons Open Database License (ODbL). Actual file contents © their authors.
