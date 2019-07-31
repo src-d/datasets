@@ -39,7 +39,7 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 			return err
 		}
 
-		var filenames []string
+		var filenames = map[string]struct{}{}
 
 		stdin, err := cmd.Flags().GetBool("stdin")
 		if err != nil {
@@ -57,7 +57,7 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 				if filename == "" {
 					continue
 				}
-				filenames = append(filenames, filename)
+				filenames[filename] = struct{}{}
 			}
 		} else {
 			f, err := getIndex(ctx)
@@ -84,7 +84,10 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 				} else if err != nil {
 					return err
 				}
-				filenames = append(filenames, r.Filenames...)
+
+				for _, f := range r.Filenames {
+					filenames[f] = struct{}{}
+				}
 			}
 		}
 
@@ -93,7 +96,7 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 }
 
 func downloadFilenames(ctx context.Context, dest, source FileSystem,
-	filenames []string, maxDownloads int) error {
+	filenames map[string]struct{}, maxDownloads int) error {
 
 	tokens := make(chan bool, maxDownloads)
 	for i := 0; i < maxDownloads; i++ {
@@ -101,7 +104,7 @@ func downloadFilenames(ctx context.Context, dest, source FileSystem,
 	}
 
 	done := make(chan error)
-	for _, filename := range filenames {
+	for filename := range filenames {
 		filename := filepath.Join("siva", pgaVersion, filename[:2], filename)
 		go func() {
 			select {
