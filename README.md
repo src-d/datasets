@@ -10,7 +10,7 @@ This repository contains all the needed tools and scripts to reproduce the datas
 
 - [Public Git Archive](PublicGitArchive)
 - Size: 6TB
-- Description: 260k+ top-bookmarked repositories from GitHub.
+- Description: 260k+ top-bookmarked repositories from GitHub, consisting of 136M+ files and ~28 billion lines of code.
 
 ### Programming Language Identifiers
 
