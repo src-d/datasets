@@ -49,7 +49,7 @@ func parseFlags() (
 	pflag.StringVarP(&outputFormat, "format", "f", "zip", "Output format: choose one of zip, parquet.")
 	pflag.StringVarP(&bblfshEndpoint, "bblfsh", "b", "0.0.0.0:9432", "Babelfish server address.")
 	pflag.IntVarP(&workers, "workers", "n", runtime.NumCPU()*2, "Number of goroutines to parse UASTs.")
-	pflag.BoolVarP(&monitor, "monitor", "m", false, "Activate the advanced detection of \"bad\" " +
+	pflag.BoolVarP(&monitor, "monitor", "m", false, "Activate the advanced detection of \"bad\" "+
 		"repositories and automatic restart on failures.")
 	pflag.DurationVarP(&timeout, "timeout", "t", time.Minute, "Bablefish parse timeout.")
 	pflag.Parse()
@@ -167,10 +167,10 @@ func decompressBytes(buffer []byte) []byte {
 }
 
 type parseTask struct {
-	FileName string
-	FullPath string
+	FileName           string
+	FullPath           string
 	CompressedContents []byte
-	HeadUasts map[string][]byte
+	HeadUasts          map[string][]byte
 }
 
 const BlacklistFileName = "blacklist.txt"
@@ -215,7 +215,7 @@ func processRepository(
 	uasts := map[string]map[string][]byte{}
 	headLock := sync.Mutex{}
 	parseTasks := make(chan parseTask, workers*2)
-	for i:=0; i<workers; i++ {
+	for i := 0; i < workers; i++ {
 		go func() {
 			client, err := bblfsh.NewClient(bblfshEndpoint)
 			if err != nil {
@@ -395,7 +395,7 @@ func writeZIP(uasts map[string]map[string][]byte, file *os.File) (err error) {
 			if err != nil {
 				return
 			}
-			v[sk] = nil  // free memory
+			v[sk] = nil // free memory
 		}
 	}
 	return
@@ -413,7 +413,7 @@ func writeParquet(uasts map[string]map[string][]byte, file *os.File) (err error)
 			if err = pw.Write(parquetItem{k, sk, string(decompressBytes(uast))}); err != nil {
 				return
 			}
-			v[sk] = nil  // free memory
+			v[sk] = nil // free memory
 		}
 	}
 	err = pw.WriteStop()
@@ -425,7 +425,7 @@ const SlaveEnvVar = "pga2uast-slave"
 func launchSlave() *exec.Cmd {
 	cmd := exec.Command(os.Args[0])
 	e := os.Environ()
-	e = append(e, SlaveEnvVar + "=1")
+	e = append(e, SlaveEnvVar+"=1")
 	cmd.Env = e
 	for _, arg := range os.Args[1:] {
 		if arg != "-m" && arg != "--monitor" {
