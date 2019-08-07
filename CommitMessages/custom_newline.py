@@ -7,6 +7,12 @@ class CustomNewlineReader:
         self.buffer_size = 1 << 18
         self._chunks = []
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.fileobj.close()
+
     def __iter__(self):
         return self
 
