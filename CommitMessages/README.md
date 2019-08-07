@@ -27,8 +27,8 @@ import lzma
 from custom_newline import CustomNewlineReader
 
 with open("commits.bin", "rb") as commf:
-    with CustomNewlineReader(xz.open("repos.txt.xz"), b"\0") as reposf:
-        with CustomNewlineReader(xz.open("messages.txt.xz"), b"\0") as msgf:
+    with CustomNewlineReader(lzma.open("repos.txt.xz"), b"\0") as reposf:
+        with CustomNewlineReader(lzma.open("messages.txt.xz"), b"\0") as msgf:
             for msg, repo in zip(msgf, reposf):
                 commit = commf.read(20).hex()
                 print(commit, repo.decode(), msg.decode())
