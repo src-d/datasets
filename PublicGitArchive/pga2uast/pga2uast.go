@@ -128,13 +128,15 @@ func createProgressBar(repos borges.RepositoryIterator) *progress.ProgressBar {
 	bar.ShowSpeed = false
 	bar.ShowElapsedTime = true
 	bar.ShowFinalTime = false
-	err := repos.ForEach(func(r borges.Repository) error {
-		bar.Total++
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("failed to iterate repositories: %v", err)
-	}
+	go func() {
+		err := repos.ForEach(func(r borges.Repository) error {
+			bar.Total++
+			return nil
+		})
+		if err != nil {
+			log.Fatalf("failed to iterate repositories: %v", err)
+		}
+	}()
 	return bar
 }
 
