@@ -1,0 +1,6 @@
+#!/bin/bash
+for host in $(seq 1 4)
+do
+    let count$host=$(ssh typos-$host.infra.mining.prod.srcd.host "find ./docker_image_analysis/packages -type f -newermt 2019-07-04 | wc -l")
+done
+echo $(($count1 + $count2 + $count3 + $count4))
