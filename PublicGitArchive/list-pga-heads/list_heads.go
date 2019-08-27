@@ -150,16 +150,24 @@ func readGitFile(f *object.File) (content []byte, err error) {
 	return buf.Bytes(), nil
 }
 
+type listedFile struct {
+	Language string
+	Size     int64
+	Path     string
+}
+
 type parquetItem struct {
-	Head string `parquet:"name=head, type=UTF8"`
-	Path string `parquet:"name=path, type=UTF8"`
+	Head     string `parquet:"name=head, type=UTF8"`
+	Language string `parquet:"name=language, type=UTF8"`
+	Size     int64  `parquet:"name=size, type=int64"`
+	Path     string `parquet:"name=path, type=UTF8"`
 }
 
 func getOutputFileName(outputDirectory, repo, outputFormat string) string {
 	return filepath.Join(outputDirectory, repo) + "." + outputFormat
 }
 
-func writeOutput(repo string, files map[string][]string,
+func writeOutput(repo string, files map[string][]listedFile,
 	outputDirectory, outputFormat string) (err error) {
 
 	empty := true
@@ -198,7 +206,7 @@ func writeOutput(repo string, files map[string][]string,
 	return nil
 }
 
-func writeZIP(files map[string][]string, file *os.File) (err error) {
+func writeZIP(files map[string][]listedFile, file *os.File) (err error) {
 	zw := zip.NewWriter(file)
 	defer func() {
 		if cerr := zw.Close(); err == nil {
@@ -211,8 +219,8 @@ func writeZIP(files map[string][]string, file *os.File) (err error) {
 			err = zerr
 			return
 		}
-		for _, fp := range v {
-			_, err = uw.Write([]byte(fp + "\n"))
+		for _, lf := range v {
+			_, err = uw.Write([]byte(fmt.Sprintf("%s,%d,%s\n", lf.Language, lf.Size, lf.Path)))
 			if err != nil {
 				return
 			}
@@ -221,7 +229,7 @@ func writeZIP(files map[string][]string, file *os.File) (err error) {
 	return
 }
 
-func writeParquet(files map[string][]string, file *os.File) (err error) {
+func writeParquet(files map[string][]listedFile, file *os.File) (err error) {
 	lf := &local.LocalFile{FilePath: file.Name(), File: file}
 	pw, err := writer.NewParquetWriter(lf, new(parquetItem), int64(runtime.NumCPU()))
 	if err != nil {
@@ -229,8 +237,8 @@ func writeParquet(files map[string][]string, file *os.File) (err error) {
 	}
 	pw.CompressionType = parquet.CompressionCodec_GZIP
 	for k, v := range files {
-		for _, fp := range v {
-			if err = pw.Write(parquetItem{k, fp}); err != nil {
+		for _, lf := range v {
+			if err = pw.Write(parquetItem{k, lf.Language, lf.Size, lf.Path}); err != nil {
 				return
 			}
 		}
@@ -259,7 +267,7 @@ func processRepository(
 		log.Printf("%s: no heads: %v", rid, err)
 		return
 	}
-	files := map[string][]string{}
+	files := map[string][]listedFile{}
 	for headIndex, head := range heads {
 		name := names[headIndex]
 		commit, err := r.R().CommitObject(head)
@@ -286,13 +294,13 @@ func processRepository(
 					rid, file.Name, file.Hash.String(), err)
 				return err
 			}
+			lang := enry.GetLanguage(file.Name, contents)
 			if _, all := languages["all"]; !all {
-				lang := enry.GetLanguage(file.Name, contents)
 				if _, exists := languages[lang]; !exists {
 					return nil
 				}
 			}
-			files[name] = append(files[name], file.Name)
+			files[name] = append(files[name], listedFile{lang, file.Size, file.Name})
 			return nil
 		})
 		if err != nil {
