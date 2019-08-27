@@ -19,7 +19,7 @@ Examples: the packages for `tensorflow/tensorflow:2.0.0b0` will be at
 
 The JSON schema is
 
-```json
+```
 {
     "image": "mongo:latest",
     "size": 384788,  // overall size in KB
