@@ -48,6 +48,12 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 1.4GB
 - Description: 1.46 million Docker image configuration and manifest files on [DockerHub](https://hub.docker.com/) fetched in June 2019.
 
+### DockerHub Packages
+
+- [DockerHub Packages](DockerHubPackages)
+- Size: 15GB
+- Description: 419092 analyzed Docker images: lists of native, Python and Node packages on [DockerHub](https://hub.docker.com/) fetched in summer 2019.
+
 ### Typos
 - [Typos](Typos)
 - Size: 1MB
