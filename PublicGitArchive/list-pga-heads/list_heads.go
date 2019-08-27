@@ -159,7 +159,7 @@ type listedFile struct {
 type parquetItem struct {
 	Head     string `parquet:"name=head, type=UTF8"`
 	Language string `parquet:"name=language, type=UTF8"`
-	Size     int64  `parquet:"name=size, type=int64"`
+	Size     int64  `parquet:"name=size, type=INT64"`
 	Path     string `parquet:"name=path, type=UTF8"`
 }
 
