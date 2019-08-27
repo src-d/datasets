@@ -4,7 +4,7 @@ DockerHub Metadata ![size 15GB](https://img.shields.io/badge/size-15GB-green.svg
 [Download.](https://drive.google.com/file/d/1IZ0CO-MqEWNWd3Ud3pDsX6t8tPslY0Xu)
 
 419092 lists of native, Python and Node packages installed in Docker images on [DockerHub](https://hub.docker.com/) fetched in summer 2019.
-The collection and analysis of this dataset was the internship project of @glimow. We expect further improvements in the future.
+The collection and analysis of this dataset was the internship project of [@glimow](https://github.com/glimow). We expect further improvements in the future.
 
 The dataset consists of a single archive: [`packages.tar.xz`](https://drive.google.com/file/d/1IZ0CO-MqEWNWd3Ud3pDsX6t8tPslY0Xu),
 320MB download size, 15GB uncompressed.
