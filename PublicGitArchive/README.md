@@ -8,12 +8,18 @@ This dataset consists of two parts:
 * [Siva](https://github.com/src-d/go-siva) files with Git repositories.
 * Index file in CSV format.
 
+Besides, there is a number of auxiliary datasets:
+
+* [configs.tar.xz](https://drive.google.com/open?id=1_cij4BMrPiKVBVdZyUzg1iOhB3pL6EPR) - raw git config files for each siva.
+* [heads.csv.xz](https://drive.google.com/open?id=136vsGWfIwfd0IrAdfphIU6lkMmme4-Pj) - mapping from HEAD UUID to repository name.
+
 ## Tools
 
 * [pga](pga) - explore the dataset, or download its contents easily.
 * [pga-create](pga-create) - reproduce PGA dataset generation.
 * [borges-indexer](borges-indexer) - exports a CSV file with metadata from repositories fetched with Borges.
 * [pga2uast](pga2uast) - extracts [Babelfish UASTs](https://docs.sourced.tech/babelfish/uast/uast-specification-v2) from the HEADs of siva files.
+* [list_heads](list-pga-heads) - lists files in each HEAD contained in siva.
 
 ## Listing and downloading
 
