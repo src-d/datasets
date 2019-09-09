@@ -35,6 +35,13 @@ For each HEAD inside each siva file, the tool writes the list of file paths. If 
 each HEAD is a text file and each file path is on a new line. If the format is "parquet",
 the table schema is two-column ("HEAD name", "file path").
 
+## Results
+
+These are the results of running the tool on PGA'19:
+
+- [configs.tar.xz](https://drive.google.com/open?id=1_cij4BMrPiKVBVdZyUzg1iOhB3pL6EPR) - raw git config files for each siva.
+- [heads.csv.xz](https://drive.google.com/open?id=136vsGWfIwfd0IrAdfphIU6lkMmme4-Pj) - mapping from HEAD UUID to repository name.
+
 ## License
 
 [MIT](https://tldrlegal.com/license/mit-license).
