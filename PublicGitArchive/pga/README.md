@@ -7,10 +7,9 @@ Use `pga` to list and download the repositories included in [Public Git Archive]
 There are no binary distributions available yet, but we're planning on releasing them sometime soon.
 In the meanwhile you'll need to compile this tool.
 
-1. install Go (https://golang.org/doc/install).
-1. fetch the source code: `go get github.com/src-d/datasets/PublicGitArchive/pga`
-1. a new binary is now avilable under `$GOPATH/bin`: `echo "$(go env GOPATH)/bin"`
-1. add that binary to your `PATH` environment variable or move the binary to somewhere easier to find.
+1. install Go 1.11+ (https://golang.org/doc/install) and `export GO111MODULE=on`.
+1. fetch and build: `go get github.com/src-d/datasets/PublicGitArchive/pga`
+1. add the built binary `pga` to your `PATH` environment variable or move it to somewhere easier to find.
 1. verify the installation went well, simply run `pga -h` and you should see some help.
 
 ## Utilization

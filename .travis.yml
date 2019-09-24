@@ -1,20 +1,21 @@
-dist: trusty
-sudo: false
+dist: xenial
 
 language: go
 
-go_import_path: github.com/src-d/datasets
 go:
-  - 1.11.x
   - 1.12.x
+  - 1.13.x
+cache:
+  - $HOME/go
+env:
+  - GO111MODULE=on GOBIN=$HOME
 
 before_install:
   - go get -v -u golang.org/x/lint/golint
-  - make dependencies
 
 script:
-  - go vet ./...
-  - lintwarns=$(golint ./... | grep src-d/datasets || true)
+  - find -name go.mod -execdir go vet ./... \;
+  - lintwarns=$($HOME/golint ./... | grep src-d/datasets || true)
   - if [ ! -z $lintwarns ]; then echo $lintwarns; false; fi
   - make test-coverage
 
@@ -25,46 +26,48 @@ jobs:
   include:
     - stage: deploy
       os: osx
-      go: 1.11.x
+      go: 1.13.x
       after_success:
-        - gzip -S .darwin_amd64.gz $GOPATH/bin/pga-create
-        - gzip -S .darwin_amd64.gz $GOPATH/bin/pga
+        - gzip -S .darwin_amd64.gz pga-create
+        - gzip -S .darwin_amd64.gz pga
+      before_install: skip
       install:
-        - go get -v github.com/src-d/datasets/PublicGitArchive/pga-create/...
-        - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
+        - cd PublicGitArchive/pga-create && go install && cd ../..
+        - cd PublicGitArchive/pga && go install && cd ../..
       script: skip
       deploy:
         provider: releases
         api_key:
           secure: $GITHUB_TOKEN
         file:
-          - "$GOPATH/bin/pga-create.darwin_amd64.gz"
-          - "$GOPATH/bin/pga.darwin_amd64.gz"
+          - "pga-create.darwin_amd64.gz"
+          - "pga.darwin_amd64.gz"
         skip_cleanup: true
         on:
           tags: true
     - stage: deploy
       os: linux
-      go: 1.11.x
+      go: 1.13.x
+      before_install: skip
       install:
-        - go get -v github.com/src-d/datasets/PublicGitArchive/pga-create/...
-        - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
+        - cd PublicGitArchive/pga-create && go install && cd ../..
+        - cd PublicGitArchive/pga && go install && cd ../..
       script: skip
       after_success:
-        - gzip -S .linux_amd64.gz $GOPATH/bin/pga-create
-        - gzip -S .linux_amd64.gz $GOPATH/bin/pga
+        - gzip -S .linux_amd64.gz pga-create
+        - gzip -S .linux_amd64.gz pga
       deploy:
         provider: releases
         api_key:
           secure: $GITHUB_TOKEN
         file:
-          - "$GOPATH/bin/pga-create.linux_amd64.gz"
-          - "$GOPATH/bin/pga.linux_amd64.gz"
+          - "pga-create.linux_amd64.gz"
+          - "pga.linux_amd64.gz"
         skip_cleanup: true
         on:
           tags: true
       after_deploy:
-        - cd $GOPATH/src/github.com/src-d/datasets/PublicGitArchive/pga-create/
+        - cd PublicGitArchive/pga-create
         - make docker-push-latest-release
 
 notifications:

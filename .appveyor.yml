@@ -2,16 +2,19 @@ version: "{build}"
 platform: x64
 image: Visual Studio 2017
 
-clone_folder: c:\gopath\src\github.com\src-d\datasets
+clone_folder: c:\datasets
+cache:
+  - C:\Users\appveyor\go
 
 environment:
-  GOPATH: c:\gopath
+  GO111MODULE: on
+  GOBIN: c:\datasets
 
 build_script:
-  - go get -v github.com/src-d/datasets/PublicGitArchive/pga-create/...
-  - go get -v github.com/src-d/datasets/PublicGitArchive/pga/...
-  - 7z a c:\gopath\src\github.com\src-d\datasets\pga-create.windows_amd64.zip %GOPATH%\bin\pga-create.exe
-  - 7z a c:\gopath\src\github.com\src-d\datasets\pga.windows_amd64.zip %GOPATH%\bin\pga.exe
+  - cd PublicGitArchive\pga-create && go install && cd ..\..
+  - cd PublicGitArchive\pga && go install && cd ..\..
+  - 7z a pga-create.windows_amd64.zip pga-create.exe
+  - 7z a pga.windows_amd64.zip pga.exe
 
 artifacts:
   - name: pga-create.windows_amd64.zip
