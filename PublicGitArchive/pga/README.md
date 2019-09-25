@@ -14,7 +14,7 @@ In the meanwhile you'll need to compile this tool.
 
 ## Utilization
 
-There are two subcommands in `pga`: `list` and `get`.
+There are three subcommands in `pga`: `list`, `get`, and `siva`.
 
 ### Listing repositories
 
@@ -72,3 +72,33 @@ downloaded match the md5 hash of the files on the server. If that's the case,
 the files will not be downloaded.
 
 This provides a simple way to resume failed downloads. Simply run the tool again.
+
+### Extracting files from downloaded siva-s
+
+The following will write the contents of each HEAD revision contained in a siva file to the current
+working directory:
+
+```bash
+pga siva dump /path/to/siva
+```
+
+`-o /output/path` allows setting the output path other than the current working directory.
+
+### Listing the commits and references in a downloaded siva file
+
+```bash
+pga siva list /path/to/siva
+```
+
+The output format is JSON. In the `"commits"` dictionary, each value is the list of the commit's parents.
+In the `"references"` dictionary, each value is the reference's target.
+
+### Dumping the raw siva contents (advanced)
+
+It is possible to extract the raw contents of a siva archive with
+
+```bash
+pga siva unpack /path/to/siva
+```
+
+It is possible to specify a regular expression for matching specific files to be extracted: `-m/--match`.
