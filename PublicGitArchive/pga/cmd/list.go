@@ -13,7 +13,7 @@ import (
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
 )
 
-// listCmd represents the list command
+// sivaCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "list all the repositories in the index",
