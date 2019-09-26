@@ -1,4 +1,4 @@
-# source{d} Datasets [![Build Status](https://travis-ci.org/src-d/datasets.svg?branch=master)](https://travis-ci.org/src-d/datasets) [![Build status](https://ci.appveyor.com/api/projects/status/b2en9yo9142qgadh?svg=true)](https://ci.appveyor.com/project/vmarkovtsev/datasets)
+# source{d} Datasets [![Build Status](https://travis-ci.com/src-d/datasets.svg?branch=master)](https://travis-ci.com/src-d/datasets) [![Build status](https://ci.appveyor.com/api/projects/status/b2en9yo9142qgadh?svg=true)](https://ci.appveyor.com/project/vmarkovtsev/datasets)
 
 source{d} datasets for source code analysis and [machine learning on source code (ML on Code)](https://github.com/src-d/awesome-machine-learning-on-source-code).
 

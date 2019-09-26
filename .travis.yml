@@ -28,6 +28,7 @@ jobs:
       os: osx
       go: 1.13.x
       after_success:
+        - cd $HOME
         - gzip -S .darwin_amd64.gz pga-create
         - gzip -S .darwin_amd64.gz pga
       before_install: skip
@@ -54,6 +55,7 @@ jobs:
         - cd PublicGitArchive/pga && go install && cd ../..
       script: skip
       after_success:
+        - cd $HOME
         - gzip -S .linux_amd64.gz pga-create
         - gzip -S .linux_amd64.gz pga
       deploy:
