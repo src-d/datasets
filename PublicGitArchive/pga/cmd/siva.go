@@ -21,6 +21,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
+	"gopkg.in/src-d/go-siva.v1/cmd/siva/impl"
 )
 
 var actions = map[string]func(flags *pflag.FlagSet) error{
@@ -30,7 +31,18 @@ var actions = map[string]func(flags *pflag.FlagSet) error{
 }
 
 func unpack(flags *pflag.FlagSet) error {
-	return nil
+	var err error
+	cmd := &impl.CmdUnpack{Overwrite: true, IgnorePerms: true}
+	cmd.Args.File = flags.Arg(1)
+	cmd.Output.Path, err = flags.GetString("output")
+	if err != nil {
+		return err
+	}
+	cmd.Match, err = flags.GetString("match")
+	if err != nil {
+		return err
+	}
+	return cmd.Execute(nil)
 }
 
 func dump(flags *pflag.FlagSet) error {

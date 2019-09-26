@@ -16,4 +16,5 @@ require (
 	gopkg.in/src-d/go-billy-siva.v4 v4.6.0
 	gopkg.in/src-d/go-billy.v4 v4.3.2
 	gopkg.in/src-d/go-git.v4 v4.13.1
+	gopkg.in/src-d/go-siva.v1 v1.8.0
 )
