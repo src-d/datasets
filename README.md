@@ -59,6 +59,12 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 1MB
 - Description: 7375 typos in source code identifier names found in GitHub repositories.
 
+### Parallel Corpus of Code and Comments
+
+- [The CodeSearchNet Challenge](https://arxiv.org/abs/1909.09436)
+- Size: 20GB
+- Description: 2M Code Comment Pairs, and 6M Total code snippets.  Benchmarks for information retrieval with a leaderboard hosted on [Weights & Biases](https://app.wandb.ai/github/CodeSearchNet/benchmark)
+
 ## Contributions
 
 Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
