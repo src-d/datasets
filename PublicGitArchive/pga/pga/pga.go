@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 )
 
@@ -81,24 +80,24 @@ var csvHeaders = []string{
 
 // RepositoryFromCSV returns a repository given a CSV representation of it.
 func RepositoryFromCSV(cols []string) (repo *Repository, err error) {
-	p := parser{cols: cols}
+	p := parser{cols: cols, csvHeaders: &csvHeaders}
 	return &Repository{
-		URL:                   p.string(headerURL),
-		Filenames:             p.stringList(headerSivaFilenames),
-		Files:                 p.int(headerFileCount),
-		Languages:             p.stringList(headerLangs),
-		LanguagesByteCount:    p.intList(headerLangsByteCount),
-		LanguagesLineCount:    p.intList(headerLangsLinesCount),
-		LanguagesFileCount:    p.intList(headerLangsFilesCount),
-		Commits:               p.int(headerCommitsCount),
-		Branches:              p.int(headerBranchesCount),
-		Forks:                 p.int(headerForkCount),
-		LanguagesEmptyLines:   p.intList(headerEmptyLinesCount),
-		LanguagesCodeLines:    p.intList(headerCodeLinesCount),
-		LanguagesCommentLines: p.intList(headerCommentLinesCount),
+		URL:                   p.readString(headerURL),
+		Filenames:             p.readStringList(headerSivaFilenames),
+		Files:                 p.readInt(headerFileCount),
+		Languages:             p.readStringList(headerLangs),
+		LanguagesByteCount:    p.readIntList(headerLangsByteCount),
+		LanguagesLineCount:    p.readIntList(headerLangsLinesCount),
+		LanguagesFileCount:    p.readIntList(headerLangsFilesCount),
+		Commits:               p.readInt(headerCommitsCount),
+		Branches:              p.readInt(headerBranchesCount),
+		Forks:                 p.readInt(headerForkCount),
+		LanguagesEmptyLines:   p.readIntList(headerEmptyLinesCount),
+		LanguagesCodeLines:    p.readIntList(headerCodeLinesCount),
+		LanguagesCommentLines: p.readIntList(headerCommentLinesCount),
 		License:               cols[headerLicense],
-		Stars:                 p.int(headerStars),
-		Size:                  p.int(headerSize),
+		Stars:                 p.readInt(headerStars),
+		Size:                  p.readInt(headerSize),
 	}, p.err
 }
 
@@ -214,65 +213,3 @@ func (idx filterIndex) Next() (*Repository, error) {
 func WithFilter(index Index, filter Filter) Index {
 	return &filterIndex{index, filter}
 }
-
-type parser struct {
-	cols []string
-	err  error
-}
-
-func (p *parser) string(idx int) string { return p.cols[idx] }
-
-func (p *parser) stringList(idx int) []string {
-	s := p.cols[idx]
-	if s == "" {
-		return nil
-	}
-	return strings.Split(p.cols[idx], ",")
-}
-
-func (p *parser) int(idx int) int64 {
-	if p.err != nil {
-		return 0
-	}
-
-	s := p.cols[idx]
-	if s == "" {
-		return 0
-	}
-
-	v, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		p.err = fmt.Errorf("parsing %s integer %q: %v", csvHeaders[idx], s, err)
-	}
-	return v
-}
-
-func (p *parser) intList(idx int) []int64 {
-	if p.err != nil {
-		return nil
-	}
-
-	ts := p.stringList(idx)
-	vs := make([]int64, len(ts))
-	for i, t := range ts {
-		v, err := strconv.ParseInt(t, 10, 64)
-		if err != nil {
-			p.err = fmt.Errorf("could not parse %q in %s: %v", t, csvHeaders[idx], err)
-			return nil
-		}
-		vs[i] = v
-	}
-	return vs
-}
-
-func formatStringList(l []string) string { return strings.Join(l, ",") }
-
-func formatIntList(vs []int64) string {
-	ts := make([]string, len(vs))
-	for i, v := range vs {
-		ts[i] = formatInt(v)
-	}
-	return formatStringList(ts)
-}
-
-func formatInt(v int64) string { return strconv.FormatInt(v, 10) }
