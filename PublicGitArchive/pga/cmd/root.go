@@ -13,7 +13,7 @@ import (
 var RootCmd = &cobra.Command{
 	Use:   "pga",
 	Short: "The Public Git Archive exploration and download tool",
-	Long: `pga allows you to list, filterm and download files from the Public Git Archive dataset.
+	Long: `pga allows you to list, filter and download files from the Public Git Archive dataset.
 
 For more info, check http://pga.sourced.tech/`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -24,14 +24,12 @@ For more info, check http://pga.sourced.tech/`,
 		if v {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
-
 		pv, err := cmd.Flags().GetString("pga-version")
 		if err != nil {
 			return err
 		}
-
 		pgaVersion = pv
-		indexName = pv + ".csv.gz"
+		indexName = pv + ".index.csv.gz"
 
 		return nil
 	},
@@ -52,7 +50,6 @@ var (
 )
 
 func init() {
-	RootCmd.Flags().BoolP("toggle", "t", false, "help message for toggle")
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "log more information")
 	RootCmd.PersistentFlags().StringVar(&pgaVersion, "pga-version", "latest", "pga version to be used")
 }
