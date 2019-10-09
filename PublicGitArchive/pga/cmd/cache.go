@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
+	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
 )
 
 const indexURL = "http://pga.sourced.tech/csv"
@@ -27,6 +28,9 @@ func updateCache(ctx context.Context, dest, source FileSystem, name string) erro
 	logrus.Debugf("local copy is outdated or non existent")
 	tmpName := name + ".tmp"
 	if err := copy(ctx, source, dest, name, tmpName); err != nil {
+		if _, cancel := err.(*pga.CommandCanceledError); cancel {
+			return err
+		}
 		if cerr := dest.Remove(tmpName); cerr != nil {
 			logrus.Warningf("error removing temporary file %s: %v",
 				dest.Abs(tmpName), cerr)
@@ -58,11 +62,13 @@ func copy(ctx context.Context, source, dest FileSystem,
 		return err
 	}
 
-	if _, err = cancelableCopy(ctx, wc, rc); err != nil {
+	if err = cancelableCopy(ctx, wc, rc); err != nil {
 		_ = rc.Close()
 		_ = wc.Close()
-		return fmt.Errorf("could not copy %s to %s: %v",
-			source.Abs(sourceName), dest.Abs(destName), err)
+		if _, cancel := err.(*pga.CommandCanceledError); !cancel {
+			err = fmt.Errorf("there where failed downloads: %v", err)
+		}
+		return err
 	}
 
 	if err := rc.Close(); err != nil {
@@ -75,23 +81,23 @@ func copy(ctx context.Context, source, dest FileSystem,
 
 const copyBufferSize = 512 * 1024
 
-func cancelableCopy(ctx context.Context, dst io.Writer, src io.Reader) (int64, error) {
+func cancelableCopy(ctx context.Context, dst io.Writer, src io.Reader) error {
 	var written int64
 	for {
 		select {
 		case <-ctx.Done():
-			return written, fmt.Errorf("download interrupted")
+			return &pga.CommandCanceledError{}
 		default:
 		}
 
 		w, err := io.CopyN(dst, src, copyBufferSize)
 		written += w
 		if err == io.EOF {
-			return written, nil
+			return nil
 		}
 
 		if err != nil {
-			return written, err
+			return err
 		}
 	}
 }

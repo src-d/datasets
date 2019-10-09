@@ -53,3 +53,10 @@ type badHeaderColumnError struct {
 func (e *badHeaderColumnError) Error() string {
 	return fmt.Sprintf("bad header column: expected  %s at index %d but got %s", e.expected, e.index, e.col)
 }
+
+// CommandCanceledError is raised if the running command is canceled
+type CommandCanceledError struct{}
+
+func (e *CommandCanceledError) Error() string {
+	return "command canceled"
+}

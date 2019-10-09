@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -17,6 +16,7 @@ var RootCmd = &cobra.Command{
 
 For more info, check http://pga.sourced.tech/`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		v, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return err
@@ -39,7 +39,6 @@ For more info, check http://pga.sourced.tech/`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }

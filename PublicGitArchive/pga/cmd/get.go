@@ -100,34 +100,33 @@ func downloadFilenames(ctx context.Context, dest, source FileSystem, datasetName
 			select {
 			case <-tokens:
 			case <-ctx.Done():
-				done <- fmt.Errorf("canceled")
 				return
 			}
 			defer func() { tokens <- true }()
 
 			err := updateCache(ctx, dest, source, filename)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not get %s: %v\n", filename, err)
+			if _, cancel := err.(*pga.CommandCanceledError); err != nil && !cancel {
+				err = fmt.Errorf("could not get %s: %v", filename, err)
 			}
-
 			done <- err
 		}()
 	}
 
 	bar := pb.StartNew(len(filenames))
-	var finalErr error
+	var err error
 	for i := 1; i <= len(filenames); i++ {
-		if err := <-done; err != nil {
-			finalErr = fmt.Errorf("there where failed downloads")
+		err = <-done
+		if err != nil {
+			if _, cancel := err.(*pga.CommandCanceledError); !cancel {
+				err = fmt.Errorf("there where failed downloads: %s", err)
+			}
+			break
 		}
+		bar.Set(i)
+		bar.Update()
 
-		if finalErr == nil {
-			bar.Set(i)
-			bar.Update()
-		}
 	}
-
-	return finalErr
+	return err
 }
 
 func init() {

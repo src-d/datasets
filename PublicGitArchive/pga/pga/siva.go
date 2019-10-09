@@ -179,7 +179,7 @@ func (dataset *SivaDataset) ForEach(ctx context.Context, r *csv.Reader, filter F
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("command canceled")
+			return &CommandCanceledError{}
 		default:
 		}
 		cols, err := r.Read()
