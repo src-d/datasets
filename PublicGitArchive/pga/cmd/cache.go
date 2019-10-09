@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os/user"
+	"path"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
@@ -125,13 +127,18 @@ func matchHash(dest, source FileSystem, name string) bool {
 	return localHash == remoteHash
 }
 
-func getIndex(ctx context.Context) (io.ReadCloser, error) {
+func getIndex(ctx context.Context, datasetName string) (io.ReadCloser, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, err
 	}
-	dest := localFS(filepath.Join(usr.HomeDir, ".pga"))
-	source := urlFS(indexURL)
+	dest := localFS(filepath.Join(usr.HomeDir, ".pga", datasetName))
+	u, err := url.Parse(indexURL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, datasetName)
+	source := urlFS(u.String())
 
 	if err := updateCache(ctx, dest, source, indexName); err != nil {
 		return nil, err
