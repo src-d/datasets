@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/cobra"
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
-	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 const rootURL = "http://pga.sourced.tech"
@@ -122,10 +122,9 @@ func downloadFilenames(ctx context.Context, dest, source FileSystem, datasetName
 			}
 			break
 		}
-		bar.Set(i)
-		bar.Update()
-
+		bar.Increment()
 	}
+	bar.Finish()
 	return err
 }
 
