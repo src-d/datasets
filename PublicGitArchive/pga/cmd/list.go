@@ -29,10 +29,6 @@ var listCmd = &cobra.Command{
 		}
 		defer f.Close()
 		r := csv.NewReader(f)
-		err = dataset.ReadHeader(r)
-		if err != nil {
-			return err
-		}
 		filter, err := filterFromFlags(cmd.Flags())
 		if err != nil {
 			return err
@@ -49,7 +45,7 @@ var listCmd = &cobra.Command{
 			}
 			return nil
 		}
-		return dataset.ForEach(ctx, r, filter, printRepository)
+		return pga.ForEachRepository(ctx, r, dataset, filter, printRepository)
 	},
 }
 
