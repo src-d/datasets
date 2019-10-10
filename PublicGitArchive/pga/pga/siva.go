@@ -1,12 +1,5 @@
 package pga
 
-import (
-	"context"
-	"encoding/csv"
-	"fmt"
-	"io"
-)
-
 const (
 	sivaHeaderURL = iota
 	sivaHeaderFilenames
@@ -106,10 +99,16 @@ func (r *SivaRepository) GetFilenames() []string {
 	return r.SivaFilenames
 }
 
-// SivaRepositoryFromCSV returns a Siva Repository from a slice of strings corresponding to it's CSV representation.
-func SivaRepositoryFromCSV(cols []string) (repo SivaRepository, err error) {
+// RepositoryFromTuple returns a SivaRepository from a slice of strings corresponding to it's CSV representation.
+func (dataset *SivaDataset) RepositoryFromTuple(cols []string) (repo Repository, err error) {
+	if !dataset.hasStars {
+		cols = append(cols, "-1")
+	}
+	if !dataset.hasSize {
+		cols = append(cols, "-1")
+	}
 	p := parser{cols: cols, csvHeaders: &sivaCSVHeaders}
-	return SivaRepository{
+	return &SivaRepository{
 		URL:                   p.readString(sivaHeaderURL),
 		SivaFilenames:         p.readStringList(sivaHeaderFilenames),
 		Files:                 p.readInt(sivaHeaderFileCount),
@@ -140,15 +139,9 @@ func (SivaDataset) Name() string {
 	return "siva"
 }
 
-// ReadHeader reads the header of the CSV index.
-func (dataset *SivaDataset) ReadHeader(r *csv.Reader) error {
-	headers, err := r.Read()
-	if err != nil {
-		return fmt.Errorf("could not read headers row: %v", err)
-	}
-
-	// check for compatibility between old indexes
-	length := len(headers)
+// ReadHeader reads the header of the CSV index (including legacy indexes from v1).
+func (dataset *SivaDataset) ReadHeader(columnNames []string) error {
+	length := len(columnNames)
 	expected := len(sivaCSVHeaders)
 	if length < expected-2 || length > expected {
 		return &badHeaderLengthError{
@@ -158,8 +151,7 @@ func (dataset *SivaDataset) ReadHeader(r *csv.Reader) error {
 		}
 	}
 
-	for i := range headers {
-		h := headers[i]
+	for i, h := range columnNames {
 		if h != sivaCSVHeaders[i] {
 			return &badHeaderColumnError{expected: sivaCSVHeaders[i], index: i, col: h}
 		}
@@ -169,41 +161,6 @@ func (dataset *SivaDataset) ReadHeader(r *csv.Reader) error {
 			dataset.hasStars = true
 		case sivaCSVHeaders[sivaHeaderSize]:
 			dataset.hasSize = true
-		}
-	}
-	return nil
-}
-
-// ForEach applies a function to each of the rows of the CSV index.
-func (dataset *SivaDataset) ForEach(ctx context.Context, r *csv.Reader, filter Filter, f func(r Repository) error) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return &CommandCanceledError{}
-		default:
-		}
-		cols, err := r.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		if !dataset.hasStars {
-			cols = append(cols, "-1")
-		}
-		if !dataset.hasSize {
-			cols = append(cols, "-1")
-		}
-
-		repository, err := SivaRepositoryFromCSV(cols)
-		if err != nil {
-			return err
-		}
-		if filter(&repository) {
-			err = f(&repository)
-			if err != nil {
-				return err
-			}
 		}
 	}
 	return nil
