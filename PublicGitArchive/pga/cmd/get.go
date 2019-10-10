@@ -2,20 +2,19 @@ package cmd
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 
-	"github.com/sirupsen/logrus"
+	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/cobra"
 	"github.com/src-d/datasets/PublicGitArchive/pga/pga"
-	pb "gopkg.in/cheggaaa/pb.v1"
 )
+
+const rootURL = "http://pga.sourced.tech"
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
@@ -25,22 +24,21 @@ var getCmd = &cobra.Command{
 
 Alternatively, a list of .siva filenames can be passed through standard input.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		dataset, err := handleDatasetArg(cmd.Use, cmd.Flags())
+		if err != nil {
+			return err
+		}
 		ctx := setupContext()
-
-		source := urlFS("http://pga.sourced.tech/")
-
+		source := urlFS(rootURL)
 		dest, err := FileSystemFromFlags(cmd.Flags())
 		if err != nil {
 			return err
 		}
-
 		maxDownloads, err := cmd.Flags().GetInt("jobs")
 		if err != nil {
 			return err
 		}
-
 		var filenames = map[string]struct{}{}
-
 		stdin, err := cmd.Flags().GetBool("stdin")
 		if err != nil {
 			return err
@@ -60,42 +58,34 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 				filenames[filename] = struct{}{}
 			}
 		} else {
-			f, err := getIndex(ctx)
+			f, err := getIndex(ctx, dataset.Name())
 			if err != nil {
 				return fmt.Errorf("could not open index file: %v", err)
 			}
 			defer f.Close()
-
-			index, err := pga.IndexFromCSV(f)
+			r := csv.NewReader(f)
+			err = dataset.ReadHeader(r)
 			if err != nil {
 				return err
 			}
-
 			filter, err := filterFromFlags(cmd.Flags())
 			if err != nil {
 				return err
 			}
-			index = pga.WithFilter(index, filter)
-
-			for {
-				r, err := index.Next()
-				if err == io.EOF {
-					break
-				} else if err != nil {
-					return err
+			addFiles := func(r pga.Repository) error {
+				for _, filename := range r.GetFilenames() {
+					filenames[filename] = struct{}{}
 				}
-
-				for _, f := range r.Filenames {
-					filenames[f] = struct{}{}
-				}
+				return nil
 			}
+			dataset.ForEach(ctx, r, filter, addFiles)
 		}
 
-		return downloadFilenames(ctx, dest, source, filenames, maxDownloads)
+		return downloadFilenames(ctx, dest, source, dataset.Name(), filenames, maxDownloads)
 	},
 }
 
-func downloadFilenames(ctx context.Context, dest, source FileSystem,
+func downloadFilenames(ctx context.Context, dest, source FileSystem, datasetName string,
 	filenames map[string]struct{}, maxDownloads int) error {
 
 	tokens := make(chan bool, maxDownloads)
@@ -105,54 +95,37 @@ func downloadFilenames(ctx context.Context, dest, source FileSystem,
 
 	done := make(chan error)
 	for filename := range filenames {
-		filename := filepath.Join("siva", pgaVersion, filename[:2], filename)
+		filename := filepath.Join(datasetName, pgaVersion, filename[:2], filename)
 		go func() {
 			select {
 			case <-tokens:
 			case <-ctx.Done():
-				done <- fmt.Errorf("canceled")
 				return
 			}
 			defer func() { tokens <- true }()
 
 			err := updateCache(ctx, dest, source, filename)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not get %s: %v\n", filename, err)
+			if _, cancel := err.(*pga.CommandCanceledError); err != nil && !cancel {
+				err = fmt.Errorf("could not get %s: %v", filename, err)
 			}
-
 			done <- err
 		}()
 	}
 
 	bar := pb.StartNew(len(filenames))
-	var finalErr error
+	var err error
 	for i := 1; i <= len(filenames); i++ {
-		if err := <-done; err != nil {
-			finalErr = fmt.Errorf("there where failed downloads")
+		err = <-done
+		if err != nil {
+			if _, cancel := err.(*pga.CommandCanceledError); !cancel {
+				err = fmt.Errorf("there where failed downloads: %s", err)
+			}
+			break
 		}
-
-		if finalErr == nil {
-			bar.Set(i)
-			bar.Update()
-		}
+		bar.Increment()
 	}
-
-	return finalErr
-}
-
-func setupContext() context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
-	var term = make(chan os.Signal)
-	go func() {
-		select {
-		case <-term:
-			logrus.Warningf("signal received, stopping...")
-			cancel()
-		}
-	}()
-	signal.Notify(term, syscall.SIGTERM, os.Interrupt)
-
-	return ctx
+	bar.Finish()
+	return err
 }
 
 func init() {

@@ -12,7 +12,7 @@ import (
 
 // And returns a filter that matches a repository only when all of the filters given match.
 func And(filters ...pga.Filter) pga.Filter {
-	return func(r *pga.Repository) bool {
+	return func(r pga.Repository) bool {
 		for _, filter := range filters {
 			if !filter(r) {
 				return false
@@ -24,7 +24,7 @@ func And(filters ...pga.Filter) pga.Filter {
 
 // Or returns a filter that matches a repository only when at least one of the filters given matches.
 func Or(filters ...pga.Filter) pga.Filter {
-	return func(r *pga.Repository) bool {
+	return func(r pga.Repository) bool {
 		for _, filter := range filters {
 			if filter(r) {
 				return true
@@ -37,8 +37,8 @@ func Or(filters ...pga.Filter) pga.Filter {
 // HasLanguage returns a Filter that matches all repositories with at least the given language.
 func HasLanguage(lang string) pga.Filter {
 	lang = strings.ToLower(lang)
-	return func(r *pga.Repository) bool {
-		for _, l := range r.Languages {
+	return func(r pga.Repository) bool {
+		for _, l := range r.GetLanguages() {
 			if strings.ToLower(l) == lang {
 				return true
 			}
@@ -53,5 +53,5 @@ func URLRegexp(s string) (pga.Filter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not compile regular expression %q: %v", s, err)
 	}
-	return func(r *pga.Repository) bool { return re.MatchString(r.URL) }, nil
+	return func(r pga.Repository) bool { return re.MatchString(r.GetURL()) }, nil
 }

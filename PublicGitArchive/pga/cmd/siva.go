@@ -221,7 +221,7 @@ func dumpFiles(commit *object.Commit, destDir string) error {
 	return err
 }
 
-// sivaCmd represents the list command
+// sivaCmd represents the set of commands to work with the siva files: extract revisions, list, dump raw contents.
 var sivaCmd = &cobra.Command{
 	Use:   "siva",
 	Short: "work with siva files",
@@ -231,7 +231,8 @@ var sivaCmd = &cobra.Command{
 			return fmt.Errorf("usage: pga siva <action> /path/to/siva")
 		}
 		action := cmd.Flags().Arg(0)
-		if actionFunc, exists := actions[action]; !exists {
+		actionFunc, exists := actions[action]
+		if !exists {
 			knownActions := make([]string, 0, len(actions))
 			for k := range actions {
 				knownActions = append(knownActions, k)
@@ -239,9 +240,8 @@ var sivaCmd = &cobra.Command{
 			sort.Strings(knownActions)
 			return fmt.Errorf("unknown action: %s (choose from %s)",
 				action, strings.Join(knownActions, ", "))
-		} else {
-			return actionFunc(cmd.Flags())
 		}
+		return actionFunc(cmd.Flags())
 	},
 }
 
