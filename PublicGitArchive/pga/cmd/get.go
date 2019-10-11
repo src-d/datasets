@@ -116,9 +116,9 @@ func downloadFilenames(ctx context.Context, dest, source FileSystem, datasetName
 			if _, cancel := err.(*pga.CommandCanceledError); !cancel {
 				err = fmt.Errorf("there where failed downloads: %s", err)
 			}
-			break
+		} else {
+			bar.Increment()
 		}
-		bar.Increment()
 	}
 	bar.Finish()
 	return err
