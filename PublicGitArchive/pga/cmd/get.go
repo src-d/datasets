@@ -64,10 +64,6 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 			}
 			defer f.Close()
 			r := csv.NewReader(f)
-			err = dataset.ReadHeader(r)
-			if err != nil {
-				return err
-			}
 			filter, err := filterFromFlags(cmd.Flags())
 			if err != nil {
 				return err
@@ -78,7 +74,7 @@ Alternatively, a list of .siva filenames can be passed through standard input.`,
 				}
 				return nil
 			}
-			dataset.ForEach(ctx, r, filter, addFiles)
+			pga.ForEachRepository(ctx, r, dataset, filter, addFiles)
 		}
 
 		return downloadFilenames(ctx, dest, source, dataset.Name(), filenames, maxDownloads)
@@ -120,9 +116,9 @@ func downloadFilenames(ctx context.Context, dest, source FileSystem, datasetName
 			if _, cancel := err.(*pga.CommandCanceledError); !cancel {
 				err = fmt.Errorf("there where failed downloads: %s", err)
 			}
-			break
+		} else {
+			bar.Increment()
 		}
-		bar.Increment()
 	}
 	bar.Finish()
 	return err
