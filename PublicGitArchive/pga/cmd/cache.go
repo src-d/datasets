@@ -28,14 +28,13 @@ func updateCache(ctx context.Context, dest, source FileSystem, name string) erro
 	logrus.Debugf("local copy is outdated or non existent")
 	tmpName := name + ".tmp"
 	if err := copy(ctx, source, dest, name, tmpName); err != nil {
-		if _, cancel := err.(*pga.CommandCanceledError); cancel {
-			return err
-		}
 		if cerr := dest.Remove(tmpName); cerr != nil {
 			logrus.Warningf("error removing temporary file %s: %v",
 				dest.Abs(tmpName), cerr)
 		}
-
+		if _, cancel := err.(*pga.CommandCanceledError); cancel {
+			return err
+		}
 		return fmt.Errorf("could not copy to temporary file %s: %v",
 			dest.Abs(tmpName), err)
 	}
