@@ -63,6 +63,7 @@ func ForEachRepository(ctx context.Context, r *csv.Reader, dataset Dataset, filt
 // Datasets is a slice containing Dataset objects on which we can apply the `get` and `list` commands.
 var Datasets = []Dataset{
 	&SivaDataset{},
+	&UastDataset{},
 }
 
 type badHeaderLengthError struct {
