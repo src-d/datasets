@@ -1,14 +1,38 @@
-Public Git Archive UASTs
-==================
+UASTs extracted from Public Git Archive ![size 5TB](https://img.shields.io/badge/size-5TB-green.svg)
+=======================================
 
-This dataset is stored under two formats:
+The [Universal Abstract Syntax Trees](https://doc.bblf.sh/uast/uast-specification-v2.html) (UASTs) extracted
+from the latest (HEAD) revision of every Git reference contained in [Public GitArchive](../../PublicGitArchive).
+The dataset is distributed as Parquet files, which you can download using the [pga CLI](../PublicGitArchive/pga).
+There is also a [ClickHouse DB version](ClickHouse) which is more lightweight and easier to work with.
 
-- as Parquet files, which you can download using the [pga CLI](../PublicGitArchive/pga);
-- as a Clickhouse DB dump, which you can download [from here](https://pga.sourced.tech/uast-clickhouse/latest.tar.xz).
+### Format
 
-## Parquet files ![size 5TB](https://img.shields.io/badge/size-5TB-green.svg)
+TODO for Romain: describe only the format of the dataset here. Which columns? Types?
 
 The Parquet files were created by using the [pga2uast](../PublicGitArchive/pga2uast) on the HEAD commit of each repository in the original dataset. The tables below should provide insights on the contents of the dataset.
+
+### Usage
+
+Each row in the parquet files contains the UAST of one file, alongside the filepath and the UUID of
+the repository. You can use [this mapping](https://drive.google.com/open?id=136vsGWfIwfd0IrAdfphIU6lkMmme4-Pj)
+to obtain the repository names from UUIDs.
+
+The Parquet files can be read using any library that supports the format, however in the case where
+you want to process large amounts of data we recommend using Spark. The UASTs are stored as byte arrays,
+and thus you can use any of the [Babelfish Clients](https://doc.bblf.sh/using-babelfish/clients.html)
+to read and manipulate them.
+
+TODO for Romain: actually write a code snippet to read a Parquet file and show smth from it.
+
+### Origin
+
+We used [pga2uast](../PublicGitArchive/pga2uast) to parse the files in HEAD revisions of PGA repositories.
+Please refer to [this GitHub issue](https://github.com/src-d/ml-backlog/issues/74) that describes
+the procedure in high detail. It was quite sophisticated because we wanted to cover as much data as we could.
+We used 11 "Start-2-L" machines on online.net.
+
+### Limitations - TODO for Romain
 
 |             | # of repos | # of files | # of distinct files | % of duplicates |
 |:-----------:|:------------:|:----------:|:--------------------:|:-----------------:|
@@ -31,11 +55,8 @@ As you see, we were not able to process 100% of the HEAD of Public Git Archive. 
 |     **PHP**    |  2,888,395 |        87.64 %       |     15.55 GB |        71.92 %       | 
 |    **Shell**   |  1,118,453 |        87.54 %       |   8.26 GB  |        25.97 %       |
 
+### License
 
-### Usage
-
-Each row in the parquet files contains the UAST of one file, alongside the filepath and the UUID of the repository. You can use [this mapping](https://drive.google.com/open?id=136vsGWfIwfd0IrAdfphIU6lkMmme4-Pj) to get the repository names from UUIDs.
-
-The Parquet files can be read using any library that supports the format, however in the case where you want to process large amounts of data we recommend using Spark. The UASTs are stored as byte arrays, and thus you can use any of the [Babelfish Clients](https://doc.bblf.sh/using-babelfish/clients.html) to read and manipulate them.
-
-## Clickhouse DB dump ![size 400GB](https://img.shields.io/badge/size-400GB-green.svg)
+Tools: [Apache 2.0](https://choosealicense.com/licenses/apache-2.0/).
+Compilation: [Open Data Commons Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/).
+Underlying code: © their authors and subject of their licenses.
