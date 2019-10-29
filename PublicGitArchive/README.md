@@ -13,6 +13,8 @@ Besides, there is a number of auxiliary datasets:
 * [configs.tar.xz](https://drive.google.com/open?id=1_cij4BMrPiKVBVdZyUzg1iOhB3pL6EPR) - raw git config files for each siva.
 * [heads.csv.xz](https://drive.google.com/open?id=136vsGWfIwfd0IrAdfphIU6lkMmme4-Pj) - mapping from HEAD UUID to repository name.
 
+Since the second version of PGA, we additionally provide the derived [dataset of UASTs](../PublicGitArchiveUASTs), extracted from the files in the latest revision of each repository.
+
 ## Tools
 
 * [pga](pga) - explore the dataset, or download its contents easily.
@@ -30,22 +32,22 @@ Simply install Go and then run `go get github.com/src-d/datasets/PublicGitArchiv
 Then to list all of the repositories in the dataset, simply run:
 
 ```bash
-pga list
+pga list siva
 ```
 
 If you'd rather get a detailed dump of the dataset (not including the file contents)
-you can choose either `pga list -f json` or `pga list -f csv`.
+you can choose either `pga list siva -f json` or `pga list siva -f csv`.
 
 To download the full dataset, execute:
 
 ```bash
-pga get
+pga get siva
 ```
 
 Or if you want to download only those repositories containing at least a line of Java code:
 
 ```bash
-pga get -l java
+pga get siva -l java
 ```
 
 The `pga` command has `-j/--workers` argument which specifies the number of downloading threads to run, it defaults to 10.
