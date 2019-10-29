@@ -18,17 +18,17 @@ There are three subcommands in `pga`: `list`, `get`, and `siva`.
 
 ### Datasets
 
-Two datasets are exposed through this tool, and both the `list` and `get` command can be used to explore and retrieve them. To do so, you must specify with a keyword which dataset you want to work on :
+Two datasets are exposed through this tool, and both the `list` and `get` commands can be used to explore and retrieve them. You must specify which dataset you want to work with:
 
-- `siva`: The original Public Git Archive dataset, made up of Siva files.
-- `uast`: The [dataset](../../PublicGitArchiveUASTs) created by extracting UASTs from the HEAD commit of each repository, made up of Parquet files.
+- `siva`: The original Public Git Archive dataset, made of Siva files.
+- `uast`: The [dataset](../../PublicGitArchiveUASTs) of extracted UASTs from the HEAD revision of each repository, made of Parquet files.
 
-Note that the `siva` _command_ does not work on Parquet files.
+Note that the `siva` _command_ does not work with Parquet files.
 
 ### Listing repositories
 
 When you run `pga list` two things wil happen.
-First a copy of the latest index for the dataset specified will be downloaded and cached locally.
+First a copy of the latest index for the specified dataset will be downloaded and cached locally.
 Then `pga` will list all the URLs for the repositories in the index.
 
 By default only the repository URL is displayed, but you can change that with the `--format` flag:
@@ -40,7 +40,7 @@ The extended information includes the fields:
 - `URL`, `SIVA_FILENAMES`, `FILE_COUNT`, `LANGS`,`LANGS_BYTE_COUNT`, `LANGS_LINES_COUNT`,`LANGS_FILES_COUNT`, `COMMITS_COUNT`, `BRANCHES_COUNT`, `FORK_COUNT`, `EMPTY_LINES_COUNT`, `CODE_LINES_COUNT`, `COMMENT_LINES_COUNT`, `LICENSE`, `STARS` and `SIZE` for the original dataset.
 - `URL`, `PARQUET_FILENAMES`, `FILE_COUNT`, `SIZE`, `FILE_EXTRACT_RATE`, `BYTE_EXTRACT_RATE`, `LANGS`, `LANGS_FILE_COUNT`, `LANGS_BYTE_COUNT`, `LANGS_FILE_EXTRACT_RATE` and `LANGS_BYTE_EXTRACT_RATE` for the UASTs dataset.
 
-Note that the fields `STARS` and `SIZE` can hold the value `-1` to point out that the index doesn't have information about those for the orginal dataset. This ensures compatibility between different index versions.
+Note that the fields `STARS` and `SIZE` can hold the value `-1` to point out that the index doesn't have information about those for the original dataset. This ensures compatibility between different index versions.
 
 `SIZE` represents the sum of the sizes of all the siva files you need to collect to get the complete repository. Because a siva file can hold several repositories information, when you need to download more than one repository the total amount of bytes to be downloaded will be at most the sum of their `SIZES` values though it could be less if they share any of the siva files.
 

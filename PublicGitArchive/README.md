@@ -13,7 +13,7 @@ Besides, there is a number of auxiliary datasets:
 * [configs.tar.xz](https://drive.google.com/open?id=1_cij4BMrPiKVBVdZyUzg1iOhB3pL6EPR) - raw git config files for each siva.
 * [heads.csv.xz](https://drive.google.com/open?id=136vsGWfIwfd0IrAdfphIU6lkMmme4-Pj) - mapping from HEAD UUID to repository name.
 
-Since the second version of PGA, we have also created a [dataset of UASTs](../PublicGitArchiveUASTs), obtained from files in the HEAD commit of each repository.
+Since the second version of PGA, we additionally provide the derived [dataset of UASTs](../PublicGitArchiveUASTs), extracted from the files in the latest revision of each repository.
 
 ## Tools
 

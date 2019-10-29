@@ -93,7 +93,38 @@ ORDER BY repo
 The cool property of ClickHouse is that the following sample queries finish within a minute
 on a single machine with 64 vcores and RAID-0 over NVMe SSDs.
 
-TODO for Romain
+```
+# Counting the number of distinct files and repositories
+
+SELECT COUNT(DISTINCT repo) AS repo_count, 
+       COUNT(DISTINCT repo, file) AS file_count
+FROM uasts;
+
+# Extracting all C# keywords: 
+
+SELECT * 
+FROM uasts
+WHERE lang = 'csharp'
+    AND type = 'Keyword';
+
+# Extracting all comments in files from source{d} repositories:
+
+SELECT * 
+FROM uasts
+WHERE repo LIKE 'src-d/%'
+    AND type = 'Comment';
+
+# Extracting all identifiers from Go files, excluding vendoring files
+
+SELECT * 
+FROM uasts
+WHERE lang = 'go'
+    AND file NOT LIKE '%vendor/%'
+    AND type = 'Identifier';
+```
+
+For more complex queries, e.g. extracting imports, some tricks are required (see [limitations](#limitations)) - however it can be [done](https://github.com/src-d/ml-mining).
+
 
 ### Origin
 
@@ -106,10 +137,19 @@ Google Cloud.
 
 As was already mentioned in the [schema section](#schema), the UASTs are flattened in a lossy way.
 This includes the aggressive normalization of the data for each programming language. While we did our
-best at detecting the possible problems early on, a few sneaked inside when it was too late to fix them.
-Below is the list of known issues:
+best at detecting the possible problems early on, a few sneaked inside when it was too late to fix them. Furthermore, the dataset was not updated after the 21st of september, so any commit merged after will not have been included.
 
-* TODO Romain
+Below is an incomplete list of known issues:
+
+* Duplication: 
+    * Some repositories were processed multiple times, because they appeared in multiple Parquet files. We created the DB by iterating on each Parquet file, and did not check for duplicate rows.
+    * Errors inherited from Babelfish that are language-specific, e.g. [duplicate go comments](https://github.com/bblfsh/go-driver/issues/56).
+* Missing data:
+    * Due to how we traversed the trees, some useful information was erased, e.g. all Ruby imports were unfortunately discarded. See [here](https://github.com/src-d/uast2clickhouse/issues/11).
+    * Errors inherited from Babelfish that are language-specific, e.g. some drivers do not keep keywords.
+* Wrong ordering: the `left` and the `right` columns are sometimes unreliable, due to how we traversed the UASTs and propagated positional information. The line numbers should always be correct though.
+
+If you notice something strange or have trouble using the dataset, please speak up [here](https://github.com/src-d/uast2clickhouse/issues) and we will help to find a workaround. The dump will not be updated until Public Git Archive v3 is released in 2020.
 
 ### License
 
