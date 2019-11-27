@@ -59,6 +59,11 @@ This repository contains all the needed tools and scripts to reproduce the datas
 - Size: 1MB
 - Description: 7375 typos in source code identifier names found in GitHub repositories.
 
+### NuGet Namespaces
+- [NugetNamespaces](NugetNamespaces)
+- Size: 13MB
+- Description: information about 681,858 .NET namespaces extracted from 227,839 NuGet packages.
+
 ## Contributions
 
 Contributions are very welcome, please see [CONTRIBUTING.md](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
